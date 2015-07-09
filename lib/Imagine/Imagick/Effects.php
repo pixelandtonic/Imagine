@@ -24,7 +24,7 @@ class Effects implements EffectsInterface
 {
     private $imagick;
 
-    public function __construct(\Imagick $imagick)
+    public function __construct(Imagick $imagick)
     {
         $this->imagick = $imagick;
     }
@@ -35,7 +35,7 @@ class Effects implements EffectsInterface
     public function gamma($correction)
     {
         try {
-            $this->imagick->gammaImage($correction, \Imagick::CHANNEL_ALL);
+            $this->imagick->gammaImage($correction, Imagick::CHANNEL_ALL);
         } catch (\ImagickException $e) {
             throw new RuntimeException('Failed to apply gamma correction to the image');
         }
@@ -49,7 +49,7 @@ class Effects implements EffectsInterface
     public function negative()
     {
         try {
-            $this->imagick->negateImage(false, \Imagick::CHANNEL_ALL);
+            $this->imagick->negateImage(false, Imagick::CHANNEL_ALL);
         } catch (\ImagickException $e) {
             throw new RuntimeException('Failed to negate the image');
         }
@@ -63,7 +63,7 @@ class Effects implements EffectsInterface
     public function grayscale()
     {
         try {
-            $this->imagick->setImageType(\Imagick::IMGTYPE_GRAYSCALE);
+            $this->imagick->setImageType(Imagick::IMGTYPE_GRAYSCALE);
         } catch (\ImagickException $e) {
             throw new RuntimeException('Failed to grayscale the image');
         }
