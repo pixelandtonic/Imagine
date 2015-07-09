@@ -752,7 +752,8 @@ final class Image extends AbstractImage
      * @param Linear $fill
      */
     private function applyFastLinear(Linear $fill)
-    {Imagick();
+    {
+        $gradient = new \Imagick();
         $size     = $this->getSize();
         $color    = sprintf('gradient:%s-%s', (string) $fill->getStart(), (string) $fill->getEnd());
 
