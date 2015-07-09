@@ -225,6 +225,26 @@ final class Image extends AbstractImage
     public function resize(BoxInterface $size, $filter = ImageInterface::FILTER_UNDEFINED)
     {
         try {
+            $this->imagick->resizeImage($size->getWidth(), $size->getHeight(), $this->getFilter($filter), 1);
+        } catch (\ImagickException $e) {
+            throw new RuntimeException('Resize operation failed', $e->getCode(), $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Resize an image with optimised settings for slightly reduced quality and significantly
+     * reduced file size.
+     *
+     * @param BoxInterface $size
+     *
+     * @return ImageInterface
+     * @throws \Imagine\Exception\RuntimeException
+     */
+    public function smartResize(BoxInterface $size)
+    {
+        try {
             $this->imagick->smartResize($size->getWidth(), $size->getHeight());
         } catch (\ImagickException $e) {
             throw new RuntimeException('Resize operation failed', $e->getCode(), $e);
