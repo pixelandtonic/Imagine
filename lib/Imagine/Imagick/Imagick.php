@@ -39,8 +39,9 @@ class Imagick extends \Imagick {
      * @param	integer	$columns		The number of columns in the output image. 0 = maintain aspect ratio based on $rows.
      * @param	integer	$rows			The number of rows in the output image. 0 = maintain aspect ratio based on $columns.
      * @param	bool	$optim			Whether you intend to perform optimization on the resulting image. Note that setting this to `true` doesn’t actually perform any optimization.
+     * @param   integer $quality        Defaults to 82 which produces a very similar image.
      */
-    public function smartResize($columns, $rows, $optim = false)
+    public function smartResize($columns, $rows, $optim = false, $quality = 82)
     {
 
         $this->setOption('filter:support', '2.0');
@@ -56,7 +57,7 @@ class Imagick extends \Imagick {
         }
 
         $this->posterizeImage(136, false);
-        $this->setImageCompressionQuality(82);
+        $this->setImageCompressionQuality($quality);
         $this->setOption('jpeg:fancy-upsampling', 'off');
         $this->setOption('png:compression-filter', '5');
         $this->setOption('png:compression-level', '9');
