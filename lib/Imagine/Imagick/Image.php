@@ -34,7 +34,7 @@ use Imagine\Image\Palette\PaletteInterface;
 final class Image extends AbstractImage
 {
     /**
-     * @var Imagick
+     * @var \Imagick
      */
     private $imagick;
     /**
@@ -64,7 +64,7 @@ final class Image extends AbstractImage
      * @param PaletteInterface $palette
      * @param MetadataBag      $metadata
      */
-    public function __construct(Imagick $imagick, PaletteInterface $palette, MetadataBag $metadata)
+    public function __construct(\Imagick $imagick, PaletteInterface $palette, MetadataBag $metadata)
     {
         $this->metadata = $metadata;
         $this->detectColorspaceConversionSupport();
@@ -248,7 +248,15 @@ final class Image extends AbstractImage
     public function smartResize(BoxInterface $size, $optimize = false, $quality = 82)
     {
         try {
-            $this->imagick->smartResize($size->getWidth(), $size->getHeight(), $optimize, $quality);
+            if ($this->imagick instanceof Imagick)
+            {
+                $this->imagick->smartResize($size->getWidth(), $size->getHeight(), $optimize, $quality);
+            }
+            else
+            {
+                $this->resize($size);
+            }
+
         } catch (\ImagickException $e) {
             throw new RuntimeException('Resize operation failed', $e->getCode(), $e);
         }
