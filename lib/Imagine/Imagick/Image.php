@@ -301,6 +301,10 @@ final class Image extends AbstractImage
 
         try {
             $this->prepareOutput($options, $path);
+
+            // If a specific PNG format is requested, set it
+            $path = (isset($options['png_format']) ? $options['png_format'] . ':' : '') . $path;
+
             $this->imagick->writeImages($path, true);
         } catch (\ImagickException $e) {
             throw new RuntimeException('Save operation failed', $e->getCode(), $e);
