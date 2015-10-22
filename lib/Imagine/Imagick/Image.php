@@ -302,8 +302,22 @@ final class Image extends AbstractImage
         try {
             $this->prepareOutput($options, $path);
 
+            /** BEGIN CORE HACK */
             // If a specific PNG format is requested, set it
-            $path = (isset($options['png_format']) ? $options['png_format'] . ':' : '') . $path;
+            if (isset($options['png_format']))
+            {
+                // Unless it's PNG8. Then we attempt to force Imagick to save it
+                // as PNG, that is palette-based with transparency
+                if ($options['png_format'] == 'png8')
+                {
+                    $this->imagick->quantizeImage(256, \Imagick::COLORSPACE_YUV, 8, false, false);
+                }
+                else
+                {
+                    $path = (isset($options['png_format']) ? $options['png_format'] . ':' : '') . $path;
+                }
+            }
+            /** END CORE HACK */
 
             $this->imagick->writeImages($path, true);
         } catch (\ImagickException $e) {
