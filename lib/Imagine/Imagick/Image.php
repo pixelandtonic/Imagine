@@ -310,7 +310,7 @@ final class Image extends AbstractImage
                 // as PNG, that is palette-based with transparency
                 if ($options['png_format'] == 'png8')
                 {
-                    $this->imagick->quantizeImage(256, \Imagick::COLORSPACE_YUV, 8, false, false);
+                    $this->imagick->quantizeImage(255, \Imagick::COLORSPACE_YUV, 8, false, false);
                 }
                 else
                 {
