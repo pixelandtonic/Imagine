@@ -217,33 +217,37 @@ class Imagick extends \Imagick {
         // Strip all profiles except color profiles.
         foreach ($this->getImageProfiles('*', true) as $key => $value) {
             if ($key != 'icc' && $key != 'icm') {
-                $this->removeImageProfile($key);
+                try
+                {
+                    $this->removeImageProfile($key);
+                }
+                catch (\Exception $e)
+                {
+                    // Some Imagick versions have trouble removing an image profile that they found.
+                }
             }
         }
 
-        if (method_exists($this, 'deleteImageProperty'))
+        $properties = array('commment', 'Thumb::URI', 'Thumb::MTime', 'Thumb::Size', 'Thumb::Mimetype', 'software', 'Thumb::Image::Width', 'Thumb::Image::Height', 'Thumb::Document::Pages');
+        $delete = method_exists($this, 'deleteImageProperty');
+
+        foreach ($properties as $property)
         {
-            $this->deleteImageProperty('comment');
-            $this->deleteImageProperty('Thumb::URI');
-            $this->deleteImageProperty('Thumb::MTime');
-            $this->deleteImageProperty('Thumb::Size');
-            $this->deleteImageProperty('Thumb::Mimetype');
-            $this->deleteImageProperty('software');
-            $this->deleteImageProperty('Thumb::Image::Width');
-            $this->deleteImageProperty('Thumb::Image::Height');
-            $this->deleteImageProperty('Thumb::Document::Pages');
-        }
-        else
-        {
-            $this->setImageProperty('comment', '');
-            $this->setImageProperty('Thumb::URI', '');
-            $this->setImageProperty('Thumb::MTime', '');
-            $this->setImageProperty('Thumb::Size', '');
-            $this->setImageProperty('Thumb::Mimetype', '');
-            $this->setImageProperty('software', '');
-            $this->setImageProperty('Thumb::Image::Width', '');
-            $this->setImageProperty('Thumb::Image::Height', '');
-            $this->setImageProperty('Thumb::Document::Pages', '');
+            try
+            {
+                if ($delete)
+                {
+                    $this->deleteImageProperty($property);
+                }
+                else
+                {
+                    $this->setImageProperty($property, '');
+                }
+            }
+            catch (\Exception $e)
+            {
+                // Mere exceptions cannot stop me!
+            }
         }
 
         // In case user wants to fill use extent for it rather than creating a new canvas
