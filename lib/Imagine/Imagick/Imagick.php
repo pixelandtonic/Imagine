@@ -56,7 +56,13 @@ class Imagick extends \Imagick {
             $this->unsharpMaskImage(0.25, 0.25, 8, 0.065);
         }
 
-        $this->posterizeImage(136, false);
+
+        // Image posterizing can cause serious performance issues on some systems / Imagick configs.
+        // It also does not serve that much in reducing filesize, so we're leaving it out.
+        // If your system handles it just fine, feel free to enable it.
+
+        // $this->posterizeImage(136, false);
+
         $this->setImageCompressionQuality($quality);
         $this->setOption('jpeg:fancy-upsampling', 'off');
         $this->setOption('png:compression-filter', '5');
