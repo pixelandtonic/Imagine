@@ -70,12 +70,7 @@ class Imagick extends \Imagick {
         $this->setOption('png:compression-strategy', '1');
         $this->setOption('png:exclude-chunk', 'all');
         $this->setInterlaceScheme(\Imagick::INTERLACE_NO);
-
-        // Older Imagick versions might not have this. Better make sure.
-        if (method_exists($this, 'setColorspace'))
-        {
-            $this->setColorspace(\Imagick::COLORSPACE_SRGB);
-        }
+        $this->transformimagecolorspace(\Imagick::COLORSPACE_SRGB);
 
         if (!$optim)
         {
