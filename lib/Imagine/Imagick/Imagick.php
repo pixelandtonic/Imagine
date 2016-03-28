@@ -49,7 +49,8 @@ class Imagick extends \Imagick {
         $this->setOption('png:exclude-chunk', 'all');
         $this->setInterlaceScheme(\Imagick::INTERLACE_NO);
 
-        if (!$preserveColorInfo)
+        // Older Imagick versions might not have this. Better make sure.
+        if (!$preserveColorInfo &&  method_exists($this, 'transformimagecolorspace'))
         {
             $this->stripImage();
             $this->transformimagecolorspace(\Imagick::COLORSPACE_SRGB);
