@@ -88,6 +88,12 @@ class Layers extends AbstractLayers
                     $imagick->setImageDelay($delay);
                     $imagick->setImageTicksPerSecond(100);
                 }
+                else if ($frameDelay = $layer->getImagick()->getImageDelay())
+                {
+                    $imagick->setImageDelay($frameDelay);
+                    $imagick->setImageTicksPerSecond(100);
+                }
+
                 $imagick->setImageIterations($loops);
 
                 $this->resource->setImage($imagick);
