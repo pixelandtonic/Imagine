@@ -190,7 +190,7 @@ class Imagick extends \Imagick {
         // if the alpha channel is not defined, make it opaque
         if ($this->getImageAlphaChannel() == \Imagick::ALPHACHANNEL_UNDEFINED)
         {
-            $this->setImageAlphaChannel(\Imagick::ALPHACHANNEL_OPAQUE);
+            $this->setImageAlphaChannel(defined('\\Imagick::ALPHACHANNEL_OPAQUE') ? Imagick::ALPHACHANNEL_OPAQUE : Imagick::ALPHACHANNEL_OFF);
         }
 
         // set the image’s bit depth to 8 bits
