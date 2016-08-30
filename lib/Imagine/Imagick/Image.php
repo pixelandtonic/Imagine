@@ -389,7 +389,7 @@ final class Image extends AbstractImage
         if (isset($options['animated']) && true === $options['animated']) {
             $format = isset($options['format']) ? $options['format'] : 'gif';
             $delay = isset($options['animated.delay']) ? $options['animated.delay'] : null;
-            $loops = isset($options['animated.loops']) ? $options['animated.loops'] : 0;
+            $loops = isset($options['animated.loops']) ? $options['animated.loops'] : $this->imagick->getImageIterations();
 
             $options['flatten'] = false;
 
