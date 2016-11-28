@@ -1,11 +1,11 @@
 # CHANGELOG
 
 ### 0.6.3.1 (WIP)
-  * Optimize images for storage when resizing with Imagick.
-  * Allow images to be saved with a specific PNG format with Imagick.
-  * Preserve palette transparency for 8-bit PNG files when saving with Imagick.
-  * Allow GIF files to have variable frame delays.
-  * Allow GIF files to be looped a finite amount of times.
+  * Optimize images for storage when resizing with Imagick
+  * Allow images to be saved with a specific PNG format with Imagick
+  * Preserve palette transparency for 8-bit PNG files when saving with Imagick
+  * Add support for GIF files with variable frame delays
+  * Add support for GIF files with non-infinite loop iterations
   * Fix compatibility issues with Imagick 7.0
   
 ### 0.6.3 (2015-09-19)
