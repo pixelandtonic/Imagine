@@ -1,5 +1,13 @@
 # CHANGELOG
 
+### 0.6.3.1 (2016-11-28)
+  * Optimize images for storage when resizing with Imagick
+  * Allow images to be saved with a specific PNG format with Imagick
+  * Preserve palette transparency for 8-bit PNG files when saving with Imagick
+  * Add support for GIF files with variable frame delays
+  * Add support for GIF files with non-infinite loop iterations
+  * Fix compatibility issues with Imagick 7.0
+  
 ### 0.6.3 (2015-09-19)
   * Fix wrong array_merge when calling Transformation::getFilters without filters
   * Add export-ignore git attribute (@Benoth)

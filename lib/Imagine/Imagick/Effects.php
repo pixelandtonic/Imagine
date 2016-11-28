@@ -12,8 +12,10 @@
 namespace Imagine\Imagick;
 
 use Imagine\Effects\EffectsInterface;
+use Imagine\Exception\NotSupportedException;
 use Imagine\Exception\RuntimeException;
 use Imagine\Image\Palette\Color\ColorInterface;
+use Imagine\Image\Palette\Color\RGB;
 
 /**
  * Effects implementation using the Imagick PHP extension
@@ -22,7 +24,7 @@ class Effects implements EffectsInterface
 {
     private $imagick;
 
-    public function __construct(\Imagick $imagick)
+    public function __construct(Imagick $imagick)
     {
         $this->imagick = $imagick;
     }
@@ -33,7 +35,7 @@ class Effects implements EffectsInterface
     public function gamma($correction)
     {
         try {
-            $this->imagick->gammaImage($correction, \Imagick::CHANNEL_ALL);
+            $this->imagick->gammaImage($correction, Imagick::CHANNEL_ALL);
         } catch (\ImagickException $e) {
             throw new RuntimeException('Failed to apply gamma correction to the image');
         }
@@ -47,7 +49,7 @@ class Effects implements EffectsInterface
     public function negative()
     {
         try {
-            $this->imagick->negateImage(false, \Imagick::CHANNEL_ALL);
+            $this->imagick->negateImage(false, Imagick::CHANNEL_ALL);
         } catch (\ImagickException $e) {
             throw new RuntimeException('Failed to negate the image');
         }
@@ -61,7 +63,7 @@ class Effects implements EffectsInterface
     public function grayscale()
     {
         try {
-            $this->imagick->setImageType(\Imagick::IMGTYPE_GRAYSCALE);
+            $this->imagick->setImageType(Imagick::IMGTYPE_GRAYSCALE);
         } catch (\ImagickException $e) {
             throw new RuntimeException('Failed to grayscale the image');
         }
@@ -74,8 +76,12 @@ class Effects implements EffectsInterface
      */
     public function colorize(ColorInterface $color)
     {
+        if (!$color instanceof RGB) {
+            throw new NotSupportedException('Colorize with non-rgb color is not supported');
+        }
+
         try {
-            $this->imagick->colorizeImage((string) $color, 1);
+            $this->imagick->colorizeImage((string) $color, new \ImagickPixel(sprintf('rgba(%d, %d, %d, 1)', $color->getRed(), $color->getGreen(), $color->getBlue())));
         } catch (\ImagickException $e) {
             throw new RuntimeException('Failed to colorize the image');
         }

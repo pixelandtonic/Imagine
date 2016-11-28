@@ -1,6 +1,7 @@
 #Imagine
-[![project status](http://stillmaintained.com/avalanche123/Imagine.png)](http://stillmaintained.com/avalanche123/Imagine)
 [![Build Status](https://travis-ci.org/avalanche123/Imagine.svg?branch=develop)](https://travis-ci.org/avalanche123/Imagine)
+
+> **Note:** This is an official fork of Bulat Shakirzyanov’s “Imagine” image manipulation library for PHP.
 
 Tweet about it using the [#php_imagine](https://twitter.com/search?q=%23php_imagine) hashtag.
 
