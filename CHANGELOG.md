@@ -1,6 +1,6 @@
 # CHANGELOG
 
-### 0.6.3.1 (WIP)
+### 0.6.3.1 (2016-11-28)
   * Optimize images for storage when resizing with Imagick
   * Allow images to be saved with a specific PNG format with Imagick
   * Preserve palette transparency for 8-bit PNG files when saving with Imagick
