@@ -122,13 +122,8 @@ final class Imagine extends AbstractImagine
         $content = stream_get_contents($resource);
 
         try {
-<<<<<<< HEAD
-            $imagick = new \Imagick();
-            $imagick->readImageBlob($content);
-=======
             $imagick = new Imagick();
             $imagick->readImageFile($resource);
->>>>>>> a716cac... Optimize images for storage when resizing with Imagick.
         } catch (\ImagickException $e) {
             throw new RuntimeException('Could not read image from resource', $e->getCode(), $e);
         }
