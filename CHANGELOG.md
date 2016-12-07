@@ -1,5 +1,8 @@
 # CHANGELOG
 
+### 0.6.3.2 (2016-12-07)
+  * Fixed some artifacts left over from a merge conflict in Imagine\Imagick\Imagine.
+
 ### 0.6.3.1 (2016-11-28)
   * Optimize images for storage when resizing with Imagick
   * Allow images to be saved with a specific PNG format with Imagick
