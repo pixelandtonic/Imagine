@@ -1,5 +1,13 @@
 # CHANGELOG
 
+### 0.7.1 (2017-05-16)
+  * Remove Symfony PHPUnit bridge as dependency (@craue)
+
+### 0.7.0 (2017-05-02)
+  * Fix memory usage on metadata reading (@Seldaek)
+  * PHP 7.1 support
+  * Latest Imagemagick compatibility (@jdewit)
+
 ### 0.6.3.2 (2016-12-07)
   * Fixed some artifacts left over from a merge conflict in Imagine\Imagick\Imagine.
 
@@ -10,7 +18,7 @@
   * Add support for GIF files with variable frame delays
   * Add support for GIF files with non-infinite loop iterations
   * Fix compatibility issues with Imagick 7.0
-  
+
 ### 0.6.3 (2015-09-19)
   * Fix wrong array_merge when calling Transformation::getFilters without filters
   * Add export-ignore git attribute (@Benoth)

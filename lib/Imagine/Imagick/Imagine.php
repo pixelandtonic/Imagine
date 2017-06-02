@@ -80,8 +80,13 @@ final class Imagine extends AbstractImagine
             $imagick->setImageMatte(true);
             $imagick->setImageBackgroundColor($pixel);
 
-            if (version_compare('6.3.1', $this->getVersion($imagick)) < 0 && version_compare('7.0', $this->getVersion($imagick)) > 0) {
-                $imagick->setImageOpacity($pixel->getColorValue(Imagick::COLOR_ALPHA));
+            if (version_compare('6.3.1', $this->getVersion($imagick)) < 0) {
+                // setImageOpacity was replaced with setImageAlpha in php-imagick v3.4.3
+                if (method_exists($imagick, 'setImageAlpha')) {
+                    $imagick->setImageAlpha($pixel->getColorValue(\Imagick::COLOR_ALPHA));
+                } else {
+                    $imagick->setImageOpacity($pixel->getColorValue(\Imagick::COLOR_ALPHA));
+                }
             }
 
             $pixel->clear();
@@ -123,7 +128,7 @@ final class Imagine extends AbstractImagine
 
         try {
             $imagick = new Imagick();
-            $imagick->readImageFile($resource);
+            $imagick->readImageBlob($resource);
         } catch (\ImagickException $e) {
             throw new RuntimeException('Could not read image from resource', $e->getCode(), $e);
         }
