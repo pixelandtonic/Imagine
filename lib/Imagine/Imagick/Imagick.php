@@ -208,7 +208,7 @@ class Imagick extends \Imagick {
 
             if ($key == 'icc' || $key == 'icm') {
                 $remove = !$keepImageProfiles;
-            } elseif ($key == 'exif') {
+            } elseif ($key == 'exif' || $key == 'iptc') {
                 $remove = !$keepExifData;
             } else {
                $remove = true;
