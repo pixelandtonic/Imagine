@@ -20,17 +20,17 @@ use Imagine\Image\Palette\Color\ColorInterface;
 final class Font extends AbstractFont
 {
     /**
-     * @var Imagick
+     * @var \Imagick
      */
     private $imagick;
 
     /**
-     * @param Imagick $imagick
+     * @param \Imagick $imagick
      * @param string $file
      * @param int $size
      * @param \Imagine\Image\Palette\Color\ColorInterface $color
      */
-    public function __construct(Imagick $imagick, $file, $size, ColorInterface $color)
+    public function __construct(\Imagick $imagick, $file, $size, ColorInterface $color)
     {
         $this->imagick = $imagick;
 

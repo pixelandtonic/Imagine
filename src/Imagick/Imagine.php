@@ -95,7 +95,7 @@ final class Imagine extends AbstractImagine
 
         try {
             $pixel = new \ImagickPixel((string) $color);
-            $pixel->setColorValue(Imagick::COLOR_ALPHA, $color->getAlpha() / 100);
+            $pixel->setColorValue(\Imagick::COLOR_ALPHA, $color->getAlpha() / 100);
 
             $imagick = new Imagick();
             $imagick->newImage($width, $height, $pixel);
@@ -177,21 +177,21 @@ final class Imagine extends AbstractImagine
     /**
      * Returns the palette corresponding to an \Imagick resource colorspace.
      *
-     * @param Imagick $imagick
+     * @param \Imagick $imagick
      *
      * @throws \Imagine\Exception\NotSupportedException
      *
      * @return \Imagine\Image\Palette\CMYK|\Imagine\Image\Palette\Grayscale|\Imagine\Image\Palette\RGB
      */
-    private function createPalette(Imagick $imagick)
+    private function createPalette(\Imagick $imagick)
     {
         switch ($imagick->getImageColorspace()) {
-            case Imagick::COLORSPACE_RGB:
-            case Imagick::COLORSPACE_SRGB:
+            case \Imagick::COLORSPACE_RGB:
+            case \Imagick::COLORSPACE_SRGB:
                 return new RGB();
-            case Imagick::COLORSPACE_CMYK:
+            case \Imagick::COLORSPACE_CMYK:
                 return new CMYK();
-            case Imagick::COLORSPACE_GRAY:
+            case \Imagick::COLORSPACE_GRAY:
                 return new Grayscale();
             default:
                 throw new NotSupportedException('Only RGB and CMYK colorspace are currently supported');
@@ -201,11 +201,11 @@ final class Imagine extends AbstractImagine
     /**
      * Returns ImageMagick version.
      *
-     * @param Imagick $imagick
+     * @param \Imagick $imagick
      *
      * @return string
      */
-    private function getVersion(Imagick $imagick)
+    private function getVersion(\Imagick $imagick)
     {
         $v = $imagick->getVersion();
         list($version) = sscanf($v['versionString'], 'ImageMagick %s %04d-%02d-%02d %s %s');
