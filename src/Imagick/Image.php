@@ -969,7 +969,7 @@ final class Image extends AbstractImage
      */
     private function applyFastLinear(Linear $fill)
     {
-        $gradient = new \Imagick();
+        $gradient = new Imagick();
         $size = $this->getSize();
         $color = sprintf('gradient:%s-%s', (string) $fill->getStart(), (string) $fill->getEnd());
 
@@ -1075,7 +1075,7 @@ final class Image extends AbstractImage
         self::$supportsProfiles = false;
 
         try {
-            $image = new \Imagick();
+            $image = new Imagick();
             $image->newImage(1, 1, new \ImagickPixel('#fff'));
             $image->profileImage('icc', 'x');
         } catch (\ImagickException $exception) {

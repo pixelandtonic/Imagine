@@ -66,10 +66,10 @@ final class Imagine extends AbstractImagine
                     // PHP 7.1 64 bit on Windows: don't pass the file name to the constructor: it may break PHP - see https://github.com/mkoppanen/imagick/issues/252
                     $imagick->readImageBlob($loader->getData(), $path);
                 } else {
-                    $imagick = new \Imagick($loader->getPath());
+                    $imagick = new Imagick($loader->getPath());
                 }
             } else {
-                $imagick = new \Imagick();
+                $imagick = new Imagick();
                 $imagick->readImageBlob($loader->getData());
             }
             $image = $this->getClassFactory()->createImage(ClassFactoryInterface::HANDLE_IMAGICK, $imagick, $this->createPalette($imagick), $this->getMetadataReader()->readFile($loader));
