@@ -156,7 +156,7 @@ final class Imagine extends AbstractImagine
 
         try {
             $imagick = new Imagick();
-            $imagick->readImageBlob($resource);
+            $imagick->readImageBlob($content);
         } catch (\ImagickException $e) {
             throw new RuntimeException('Could not read image from resource', $e->getCode(), $e);
         }
