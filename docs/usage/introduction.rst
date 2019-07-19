@@ -14,7 +14,7 @@ The recommended way to install Imagine is through `Composer`_.
 Composer is a dependency management library for PHP.
 
 Here is an example of composer project configuration that requires imagine
-version 0.4.
+version 0.5.
 
 .. code-block:: json
 
@@ -136,8 +136,20 @@ You can optionally specify the fill color for the new image, which defaults to o
 
    $palette = new Imagine\Image\Palette\RGB();
    $size  = new Imagine\Image\Box(400, 300);
-   $color = $palette->color('#000', 100);
+   $color = $palette->color('#000', 0);
    $image = $imagine->create($size, $color);
+   
+To use a solid background color, for example orange, provide an alpha of 100.
+
+.. code-block:: php
+
+   <?php
+
+   $palette = new Imagine\Image\Palette\RGB();
+   $size  = new Imagine\Image\Box(400, 300);
+   $color = $palette->color('#ff9900', 100);
+   $image = $imagine->create($size, $color);
+
 
 Save Images
 +++++++++++
@@ -158,7 +170,7 @@ The following example opens a Jpg image and saves it as Png format :
 Three options groups are currently supported : quality, resolution and flatten.
 
 .. TIP::
-   Default values are 75 for Jpeg quality, 7 for Png compression level and 72 dpi for x/y-resolution.
+   Default values are 75 for Jpeg quality, 7 for Png compression level, 75 for webp quality and 72 dpi for x/y-resolution.
 
 .. NOTE::
    GD does not support resolution options group
@@ -174,6 +186,7 @@ The following example demonstrates the basic quality settings.
    $imagine->open('/path/to/image.jpg')
       ->save('/path/to/image.jpg', array('jpeg_quality' => 50)) // from 0 to 100
       ->save('/path/to/image.png', array('png_compression_level' => 9)); // from 0 to 9
+      ->save('/path/to/image.webp', array('webp_quality' => 50)) // from 0 to 100
 
 The following example opens a Jpg image and saves it with it with 150 dpi horizontal resolution and 120 dpi vertical resolution.
 
@@ -217,7 +230,7 @@ you can avoid this by explicitly set this option to ``false`` when saving :
            ->save('/path/to/animated-resized.gif', array('flatten' => false));
 
 .. TIP::
-   You **SHOULD** not flatten image only for animated gif and png images.
+   You **SHOULD NOT** flatten image only for animated gif and png images.
 
 Of course, you can combine options :
 
@@ -395,7 +408,7 @@ Image Reflection Filter
    ;
 
 .. TIP::
-   For step by step explanation of the above code `see Reflection section of Introduction to Imagine <http://speakerdeck.com/u/avalanche123/p/introduction-to-imagine?slide=31>`_
+   For step by step explanation of the above code `see Reflection section of Introduction to Imagine <https://speakerdeck.com/avalanche123/introduction-to-imagine?slide=31>`_
 
 Architecture
 ------------
@@ -405,7 +418,7 @@ The architecture is very flexible, as the filters don't need any processing logi
 The ``Transformation`` object is an example of a composite filter, representing a stack or queue of filters, that get applied to an Image upon application of the ``Transformation`` itself.
 
 .. TIP::
-   For more information about ``Transformation`` filter `see Transformation section of Introduction to Imagine <http://speakerdeck.com/u/avalanche123/p/introduction-to-imagine?slide=57>`_
+   For more information about ``Transformation`` filter `see Transformation section of Introduction to Imagine <https://speakerdeck.com/avalanche123/introduction-to-imagine?slide=57>`_
 
 .. _ImagineInterface: ../_static/API/Imagine/Image/ImagineInterface.html
 .. _ImageInterface: ../_static/API/Imagine/Image/ImageInterface.html
