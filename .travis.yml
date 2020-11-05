@@ -1,65 +1,125 @@
+sudo: true
+
 language: php
 
+cache:
+  directories:
+    - $HOME/.composer/cache
+    - cache
+
 env:
-  - IMAGINE_DRIVER=imagick
-  - IMAGINE_DRIVER=gmagick
+  global:
+    secure: HqQihSflXXBGhNuYsUmi8mN3K6Wr5gfgOahzDjxjs5iJGyCr258BLJsEKh90PWIo8yykgW1hyGcBhxom7yjWo8HWyCjJANE0hCwRVGYV7emMwzRzsOAlDTwtjCJPTjEAZrXKQWLYeG+ZdVJqPx1vMdDoyHXW4rU3EZGv76uvHn8=
 
 before_install:
-  - echo '' > ~/.phpenv/versions/$(phpenv version-name)/etc/conf.d/xdebug.ini
-  - composer self-update
+  - phpenv config-rm xdebug.ini || true
 
 install:
-  - sudo apt-get remove -y imagemagick libmagickcore-dev libmagickwand-dev
-  - sudo apt-get install -y libtiff-dev libjpeg-dev libdjvulibre-dev libwmf-dev pkg-config liblcms2-dev
-  - sh -e -c " if [ '$IMAGINE_DRIVER' = 'imagick' ]; then
-              wget http://www.imagemagick.org/download/releases/ImageMagick-6.8.9-10.tar.xz;
-              tar -xf ImageMagick-6.8.9-10.tar.xz;
-              cd ImageMagick-6.8.9-10;
-              ./configure --prefix=/opt/imagemagick;
-              make -j;
-              sudo make install;
-              export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/opt/imagemagick/lib/pkgconfig;
-              sudo ln -s /opt/imagemagick/include/ImageMagick-6 /opt/imagemagick/include/ImageMagick;
-              cd ..;
-              wget https://pecl.php.net/get/imagick-3.4.0.tgz;
-              tar -xzf imagick-3.4.0.tgz;
-              cd imagick-3.4.0;
-              phpize;
-              ./configure --with-imagick=/opt/imagemagick;
-              make -j;
-              sudo make install;
-              echo \"extension=imagick.so\" >> `php --ini | grep \"Loaded Configuration\" | sed -e \"s|.*:\s*||\"`;
-              php --ri imagick;
-            fi"
-  - sh -e -c " if [ '$IMAGINE_DRIVER' = 'gmagick' ]; then
-              wget http://78.108.103.11/MIRROR/ftp/GraphicsMagick/1.3/GraphicsMagick-1.3.23.tar.xz;
-              tar -xf GraphicsMagick-1.3.23.tar.xz;
-              cd GraphicsMagick-1.3.23;
-              ./configure --prefix=/opt/gmagick --enable-shared --with-lcms2;
-              make -j;
-              sudo make install;
-              cd ..;
-              if [ '$TRAVIS_PHP_VERSION' = '7.0' ]; then
-                  wget https://pecl.php.net/get/gmagick-2.0.2RC1.tgz;
-                  tar -xzf gmagick-2.0.2RC1.tgz;
-                  cd gmagick-2.0.2RC1;
-              else
-                  wget http://pecl.php.net/get/gmagick-1.1.7RC2.tgz;
-                  tar -xzf gmagick-1.1.7RC2.tgz;
-                  cd gmagick-1.1.7RC2;
-              fi;
-              phpize;
-              ./configure --with-gmagick=/opt/gmagick;
-              make -j;
-              sudo make install;
-              echo \"extension=gmagick.so\" >> `php --ini | grep \"Loaded Configuration\" | sed -e \"s|.*:\s*||\"`;
-              php --ri gmagick;
-            fi"
-  - composer install --prefer-source
+  - |
+    set -o errexit
+    case "${TRAVISOPERATION:-}" in
+        codestyle)
+            ;;
+        *)
+            sudo apt-get update -y || true
+            sudo apt-get remove -y imagemagick libmagickcore-dev libmagickwand-dev
+            sudo apt-get install -y ca-certificates libtiff-dev libjpeg-dev libdjvulibre-dev libwmf-dev pkg-config liblcms2-dev autoconf
+            PHPUNIT_EXCLUDED_GROUPS=always-skipped
+            if test "${IMAGINE_DRIVER:-}" = 'imagick' -o "${IMAGINE_DRIVER:-}" = 'all'; then ./.travis/imagick.sh; else PHPUNIT_EXCLUDED_GROUPS="${PHPUNIT_EXCLUDED_GROUPS},imagick"; fi
+            if test "${IMAGINE_DRIVER:-}" = 'gmagick' -o "${IMAGINE_DRIVER:-}" = 'all'; then ./.travis/gmagick.sh; else PHPUNIT_EXCLUDED_GROUPS="${PHPUNIT_EXCLUDED_GROUPS},gmagick"; fi
+            php --ri gd || true
+            composer --no-interaction remove --dev --no-update --no-scripts friendsofphp/php-cs-fixer
+            ;;
+    esac
+  - php --ri curl || true
+  - ifconfig || true
+  - composer --no-interaction install
+  - set +o errexit
 
-php:
-  - 5.3
-  - 5.4
-  - 5.5
-  - 5.6
-  - 7.0
+script:
+  - |
+    set -o errexit
+    case "${TRAVISOPERATION:-}" in
+        codestyle)
+            composer --no-interaction codestyle -- --no-interaction --dry-run --diff -- .
+            ;;
+        *)
+            composer --no-interaction test -- --exclude-group "${PHPUNIT_EXCLUDED_GROUPS}"
+            ;;
+    esac
+    set +o errexit
+  - if test -n "${AUTOUPDATE_API:-}"; then ./.travis/autoupdate-api.sh; fi
+
+matrix:
+  fast_finish: true
+  allow_failures:
+    - name: Test with PHP nightly (all drivers)
+  include:
+    -
+      name: Test with PHP 5.3 (GD and imagick drivers)
+      dist: precise
+      php: '5.3'
+      env:
+        - IMAGINE_DRIVER: imagick
+    -
+      name: Test with PHP 5.3 (GD and gmagick drivers)
+      dist: precise
+      php: '5.3'
+      env:
+        - IMAGINE_DRIVER: gmagick
+    -
+      name: Test with PHP 5.4 (all drivers)
+      dist: trusty
+      php: '5.4'
+      env:
+        - IMAGINE_DRIVER: all
+    -
+      name: Test with PHP 5.5 (all drivers)
+      dist: trusty
+      php: '5.5'
+      env:
+        - IMAGINE_DRIVER: all
+    -
+      name: Test with PHP 5.6 (all drivers)
+      php: '5.6'
+      env:
+        - IMAGINE_DRIVER: all
+    -
+      name: Test with PHP 7.0 (all drivers)
+      php: '7.0'
+      env:
+        - IMAGINE_DRIVER: all
+    -
+      name: Test with PHP 7.1 (all drivers)
+      php: '7.1'
+      env:
+        - IMAGINE_DRIVER: all
+    -
+      name: Test with PHP 7.2 (all drivers)
+      php: '7.2'
+      env:
+        - IMAGINE_DRIVER: all
+    -
+      name: Test with PHP 7.3 (all drivers)
+      php: '7.3'
+      env:
+        - IMAGINE_DRIVER: all
+    -
+      name: Test with PHP 7.4 (all drivers)
+      php: '7.4'
+      env:
+        - IMAGINE_DRIVER: all
+    -
+      name: Test with PHP nightly (GD and imagick drivers)
+      php: nightly
+      before_install:
+        - phpenv config-rm xdebug.ini || true
+        - composer --no-interaction config platform.php 7.4.0
+      env:
+        - IMAGINE_DRIVER: imagick
+    -
+      name: Coding style and docs
+      php: 7.2
+      env:
+        - TRAVISOPERATION=codestyle
+        - AUTOUPDATE_API=yes
