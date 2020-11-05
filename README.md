@@ -1,5 +1,5 @@
 # Imagine
-[![Travis CI Build Status](https://travis-ci.org/avalanche123/Imagine.svg?branch=develop)](https://travis-ci.org/avalanche123/Imagine) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/avalanche123/Imagine?branch=develop&svg=true)](https://ci.appveyor.com/project/avalanche123/Imagine)
+[![Travis CI Build Status](https://travis-ci.com/avalanche123/Imagine.svg?branch=develop)](https://travis-ci.com/avalanche123/Imagine) [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/avalanche123/Imagine?branch=develop&svg=true)](https://ci.appveyor.com/project/avalanche123/Imagine)
 
 > **Note:** This is an official fork of Bulat Shakirzyanov’s “Imagine” image manipulation library for PHP.
 

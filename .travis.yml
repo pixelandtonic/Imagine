@@ -21,10 +21,9 @@ install:
         codestyle)
             ;;
         *)
-            sudo apt-get update
-            sudo apt-get remove -y imagemagick libmagickcore-dev libmagickwand-dev
             sudo apt-get update -y || true
-            sudo apt-get install -y ca-certificates libtiff-dev libjpeg-dev libdjvulibre-dev libwmf-dev pkg-config liblcms2-dev
+            sudo apt-get remove -y imagemagick libmagickcore-dev libmagickwand-dev
+            sudo apt-get install -y ca-certificates libtiff-dev libjpeg-dev libdjvulibre-dev libwmf-dev pkg-config liblcms2-dev autoconf
             PHPUNIT_EXCLUDED_GROUPS=always-skipped
             if test "${IMAGINE_DRIVER:-}" = 'imagick' -o "${IMAGINE_DRIVER:-}" = 'all'; then ./.travis/imagick.sh; else PHPUNIT_EXCLUDED_GROUPS="${PHPUNIT_EXCLUDED_GROUPS},imagick"; fi
             if test "${IMAGINE_DRIVER:-}" = 'gmagick' -o "${IMAGINE_DRIVER:-}" = 'all'; then ./.travis/gmagick.sh; else PHPUNIT_EXCLUDED_GROUPS="${PHPUNIT_EXCLUDED_GROUPS},gmagick"; fi
@@ -35,6 +34,7 @@ install:
   - php --ri curl || true
   - ifconfig || true
   - composer --no-interaction install
+  - set +o errexit
 
 script:
   - |
@@ -47,12 +47,12 @@ script:
             composer --no-interaction test -- --exclude-group "${PHPUNIT_EXCLUDED_GROUPS}"
             ;;
     esac
+    set +o errexit
   - if test -n "${AUTOUPDATE_API:-}"; then ./.travis/autoupdate-api.sh; fi
 
 matrix:
   fast_finish: true
   allow_failures:
-    - name: Test with PHP 7.4 (all drivers)
     - name: Test with PHP nightly (all drivers)
   include:
     -
@@ -69,11 +69,13 @@ matrix:
         - IMAGINE_DRIVER: gmagick
     -
       name: Test with PHP 5.4 (all drivers)
+      dist: trusty
       php: '5.4'
       env:
         - IMAGINE_DRIVER: all
     -
       name: Test with PHP 5.5 (all drivers)
+      dist: trusty
       php: '5.5'
       env:
         - IMAGINE_DRIVER: all
@@ -104,14 +106,17 @@ matrix:
         - IMAGINE_DRIVER: all
     -
       name: Test with PHP 7.4 (all drivers)
-      php: '7.4snapshot'
+      php: '7.4'
       env:
         - IMAGINE_DRIVER: all
     -
-      name: Test with PHP nightly (all drivers)
+      name: Test with PHP nightly (GD and imagick drivers)
       php: nightly
+      before_install:
+        - phpenv config-rm xdebug.ini || true
+        - composer --no-interaction config platform.php 7.4.0
       env:
-        - IMAGINE_DRIVER: all
+        - IMAGINE_DRIVER: imagick
     -
       name: Coding style and docs
       php: 7.2
