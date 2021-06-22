@@ -32,7 +32,7 @@ class Imagick extends \Imagick {
     {
 
         $this->setOption('filter:support', '2.0');
-        $this->thumbnailImage($columns, $rows, false, false, \Imagick::FILTER_TRIANGLE, $keepImageProfiles, $keepExifData);
+        $this->_thumbnailImage($columns, $rows, false, false, \Imagick::FILTER_TRIANGLE, $keepImageProfiles, $keepExifData);
 
         $this->unsharpMaskImage(0.25, 0.25, 8, 0.065);
 
@@ -62,11 +62,11 @@ class Imagick extends \Imagick {
     /**
      * Changes the size of an image to the given dimensions and removes any associated profiles.
      *
-     * `thumbnailImage` changes the size of an image to the given dimensions and
+     * `_thumbnailImage` changes the size of an image to the given dimensions and
      * removes any associated profiles.  The goal is to produce small low cost
      * thumbnail images suited for display on the Web.
      *
-     * With the original Imagick thumbnailImage implementation, there is no way to choose a
+     * With the original Imagick _thumbnailImage implementation, there is no way to choose a
      * resampling filter. This class recreates Imagick’s C implementation and adds this
      * additional feature.
      *
@@ -85,10 +85,10 @@ class Imagick extends \Imagick {
      * @return	bool	Indicates whether the operation was performed successfully.
      */
 
-    public function thumbnailImage($columns, $rows, $bestfit = false, $fill = false, $filter = \Imagick::FILTER_TRIANGLE, $keepImageProfiles = false, $keepExifData = false)
+    private function _thumbnailImage($columns, $rows, $bestfit = false, $fill = false, $filter = \Imagick::FILTER_TRIANGLE, $keepImageProfiles = false, $keepExifData = false)
     {
 
-        // sample factor; defined in original ImageMagick thumbnailImage function
+        // sample factor; defined in original ImageMagick _thumbnailImage function
         // the scale to which the image should be resized using the `sample` function
         $SampleFactor = 5;
 
