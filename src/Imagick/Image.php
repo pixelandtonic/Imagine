@@ -305,25 +305,22 @@ final class Image extends AbstractImage implements InfoProvider
      * reduced file size.
      *
      * @param BoxInterface $size
-     * @param boolean      $keepImageProfiles Whether to keep ICP and ICM image profiles. Defaults to false.
-     * @param boolean      $keepExifData      Whether to keep EXIF data. Defaults to false.
-     * @param integer      $quality    Defaults to 82 which produces a very similar image.
+     * @param bool $keepImageProfiles Whether to keep ICP and ICM image profiles. Defaults to false.
+     * @param bool $keepExifData      Whether to keep EXIF data. Defaults to false.
+     * @param int $quality    defaults to 82 which produces a very similar image
+     *
+     * @throws \Imagine\Exception\RuntimeException
      *
      * @return ImageInterface
-     * @throws \Imagine\Exception\RuntimeException
      */
     public function smartResize(BoxInterface $size, $keepImageProfiles = false, $keepExifData = false, $quality = 82)
     {
         try {
-            if ($this->imagick instanceof \Imagick)
-            {
+            if ($this->imagick instanceof Imagick) {
                 $this->imagick->smartResize($size->getWidth(), $size->getHeight(), $keepImageProfiles, $keepExifData, $quality);
-            }
-            else
-            {
+            } else {
                 $this->resize($size);
             }
-
         } catch (\ImagickException $e) {
             throw new RuntimeException('Resize operation failed', $e->getCode(), $e);
         }
@@ -373,16 +370,12 @@ final class Image extends AbstractImage implements InfoProvider
             $this->prepareOutput($options, $path);
 
             // If a specific PNG format is requested, set it
-            if (isset($options['png_format']))
-            {
+            if (isset($options['png_format'])) {
                 // Unless it's PNG8. Then we attempt to force Imagick to save it
                 // as PNG, that is palette-based with transparency
-                if ($options['png_format'] == 'png8')
-                {
+                if ($options['png_format'] == 'png8') {
                     $this->imagick->quantizeImage(255, \Imagick::COLORSPACE_YUV, 8, false, false);
-                }
-                else
-                {
+                } else {
                     $path = (isset($options['png_format']) ? $options['png_format'] . ':' : '') . $path;
                 }
             }

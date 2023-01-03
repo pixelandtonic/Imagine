@@ -113,9 +113,7 @@ class Layers extends AbstractLayers implements InfoProvider
                 if ($delay !== null) {
                     $imagick->setImageDelay($delay);
                     $imagick->setImageTicksPerSecond(100);
-                }
-                else if ($frameDelay = $layer->getImagick()->getImageDelay())
-                {
+                } elseif ($frameDelay = $layer->getImagick()->getImageDelay()) {
                     $imagick->setImageDelay($frameDelay);
                     $imagick->setImageTicksPerSecond(100);
                 }
