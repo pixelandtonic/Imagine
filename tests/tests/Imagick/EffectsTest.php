@@ -11,6 +11,7 @@
 
 namespace Imagine\Test\Imagick;
 
+use Imagine\Imagick\DriverInfo;
 use Imagine\Imagick\Imagine;
 use Imagine\Test\Effects\AbstractEffectsTest;
 
@@ -22,17 +23,18 @@ class EffectsTest extends AbstractEffectsTest
     /**
      * {@inheritdoc}
      *
-     * @see \Imagine\Test\ImagineTestCaseBase::setUpBase()
+     * @see \Imagine\Driver\InfoProvider::getDriverInfo()
      */
-    protected function setUpBase()
+    public static function getDriverInfo($required = true)
     {
-        parent::setUpBase();
-
-        if (!class_exists('Imagick')) {
-            $this->markTestSkipped('Imagick is not installed');
-        }
+        return DriverInfo::get($required);
     }
 
+    /**
+     * {@inheritdoc}
+     *
+     * @see \Imagine\Test\Effects\AbstractEffectsTest::getImagine()
+     */
     protected function getImagine()
     {
         return new Imagine();

@@ -11,14 +11,22 @@
 
 namespace Imagine\Test\Image;
 
+use Imagine\Driver\Info;
+use Imagine\Driver\InfoProvider;
+use Imagine\Exception\NotSupportedException;
 use Imagine\Image\Box;
-use Imagine\Image\ImagineInterface;
+use Imagine\Image\Format;
 use Imagine\Image\Palette\RGB;
 use Imagine\Image\Point;
 use Imagine\Test\ImagineTestCase;
 
-abstract class AbstractImagineTest extends ImagineTestCase
+abstract class AbstractImagineTest extends ImagineTestCase implements InfoProvider
 {
+    /**
+     * @return \Imagine\Image\ImagineInterface
+     */
+    abstract protected function getImagine();
+
     public function testShouldCreateEmptyImage()
     {
         $factory = $this->getImagine();
@@ -49,7 +57,61 @@ abstract class AbstractImagineTest extends ImagineTestCase
 
     public function testShouldOpenAWebPImage()
     {
+        if (!$this->getDriverInfo()->isFormatSupported(Format::ID_WEBP)) {
+            $this->markTestSkipped("This driver can't open WEBP images");
+        }
         $source = IMAGINE_TEST_FIXTURESFOLDER . '/webp-image.webp';
+        $factory = $this->getImagine();
+        $image = $factory->open($source);
+        $size = $image->getSize();
+        $this->assertInstanceOf('Imagine\Image\ImageInterface', $image);
+        $this->assertEquals(100, $size->getWidth());
+        $this->assertEquals(100, $size->getHeight());
+        $metadata = $image->metadata();
+        $this->assertEquals($source, $metadata['uri']);
+        $this->assertEquals(realpath($source), $metadata['filepath']);
+    }
+
+    public function testShouldOpenAAvifImage()
+    {
+        if (!$this->getDriverInfo()->isFormatSupported(Format::ID_AVIF)) {
+            $this->markTestSkipped("This driver can't open AVIF images");
+        }
+        $source = IMAGINE_TEST_FIXTURESFOLDER . '/avif-image.avif';
+        $factory = $this->getImagine();
+        $image = $factory->open($source);
+        $size = $image->getSize();
+        $this->assertInstanceOf('Imagine\Image\ImageInterface', $image);
+        $this->assertEquals(100, $size->getWidth());
+        $this->assertEquals(100, $size->getHeight());
+        $metadata = $image->metadata();
+        $this->assertEquals($source, $metadata['uri']);
+        $this->assertEquals(realpath($source), $metadata['filepath']);
+    }
+
+    public function testShouldOpenAHeicImage()
+    {
+        if (!$this->getDriverInfo()->isFormatSupported(Format::ID_HEIC)) {
+            $this->markTestSkipped("This driver can't open HEIC images");
+        }
+        $source = IMAGINE_TEST_FIXTURESFOLDER . '/heic-image.heic';
+        $factory = $this->getImagine();
+        $image = $factory->open($source);
+        $size = $image->getSize();
+        $this->assertInstanceOf('Imagine\Image\ImageInterface', $image);
+        $this->assertEquals(100, $size->getWidth());
+        $this->assertEquals(100, $size->getHeight());
+        $metadata = $image->metadata();
+        $this->assertEquals($source, $metadata['uri']);
+        $this->assertEquals(realpath($source), $metadata['filepath']);
+    }
+
+    public function testShouldOpenAJxlImage()
+    {
+        if (!$this->getDriverInfo()->isFormatSupported(Format::ID_JXL)) {
+            $this->markTestSkipped("This driver can't open JXL images");
+        }
+        $source = IMAGINE_TEST_FIXTURESFOLDER . '/jxl-image.jxl';
         $factory = $this->getImagine();
         $image = $factory->open($source);
         $size = $image->getSize();
@@ -98,14 +160,7 @@ abstract class AbstractImagineTest extends ImagineTestCase
     public function testShouldOpenAnHttpImage()
     {
         $factory = $this->getImagine();
-        try {
-            $image = $factory->open(self::HTTP_IMAGE);
-        } catch (\Imagine\Exception\RuntimeException $x) {
-            if (getenv('TRAVIS') && getenv('CONTINUOUS_INTEGRATION') && $x->getMessage() === 'gnutls_handshake() failed: A TLS packet with unexpected length was received.') {
-                $this->markTestSkipped($x->getMessage());
-            }
-            throw $x;
-        }
+        $image = $factory->open(self::getTestWebserverUrl(self::HTTP_IMAGE_PATH));
         $size = $image->getSize();
 
         $this->assertInstanceOf('Imagine\Image\ImageInterface', $image);
@@ -114,7 +169,7 @@ abstract class AbstractImagineTest extends ImagineTestCase
 
         $metadata = $image->metadata();
 
-        $this->assertEquals(self::HTTP_IMAGE, $metadata['uri']);
+        $this->assertEquals(self::getTestWebserverUrl(self::HTTP_IMAGE_PATH), $metadata['uri']);
         $this->assertArrayNotHasKey('filepath', $metadata);
     }
 
@@ -136,8 +191,9 @@ abstract class AbstractImagineTest extends ImagineTestCase
 
     public function testShouldCreateImageFromStreamWithMetadata()
     {
-        $source = 'http://imagine.readthedocs.org/en/latest/_static/exit-90-test.jpg';
+        $source = self::getTestWebserverUrl('/fixtures/exifOrientation/90.jpg');
         $resource = fopen($source, 'r');
+        $this->assertTrue($resource !== false);
 
         $factory = $this->getImagine();
         $image = $factory->read($resource);
@@ -175,7 +231,7 @@ abstract class AbstractImagineTest extends ImagineTestCase
     public function testShouldCreateImageFromHttpResource()
     {
         $factory = $this->getImagine();
-        $resource = fopen(self::HTTP_IMAGE, 'r');
+        $resource = fopen(self::getTestWebserverUrl(self::HTTP_IMAGE_PATH), 'r');
         $image = $factory->read($resource);
         $size = $image->getSize();
 
@@ -185,21 +241,21 @@ abstract class AbstractImagineTest extends ImagineTestCase
 
         $metadata = $image->metadata();
 
-        $this->assertEquals(self::HTTP_IMAGE, $metadata['uri']);
+        $this->assertEquals(self::getTestWebserverUrl(self::HTTP_IMAGE_PATH), $metadata['uri']);
         $this->assertArrayNotHasKey('filepath', $metadata);
     }
 
     public function testCreateAlphaPrecision()
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_TRANSPARENCY);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $imagine = $this->getImagine();
         $palette = new RGB();
         $image = $imagine->create(new Box(1, 1), $palette->color('#f00', 17));
         $actualColor = $image->getColorAt(new Point(0, 0));
         $this->assertEquals(17, $actualColor->getAlpha());
     }
-
-    /**
-     * @return ImagineInterface
-     */
-    abstract protected function getImagine();
 }

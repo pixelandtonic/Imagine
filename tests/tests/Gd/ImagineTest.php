@@ -11,6 +11,7 @@
 
 namespace Imagine\Test\Gd;
 
+use Imagine\Gd\DriverInfo;
 use Imagine\Gd\Imagine;
 use Imagine\Test\Image\AbstractImagineTest;
 
@@ -22,29 +23,11 @@ class ImagineTest extends AbstractImagineTest
     /**
      * {@inheritdoc}
      *
-     * @see \Imagine\Test\ImagineTestCaseBase::setUpBase()
+     * @see \Imagine\Driver\InfoProvider::getDriverInfo()
      */
-    protected function setUpBase()
+    public static function getDriverInfo($required = true)
     {
-        parent::setUpBase();
-
-        if (!function_exists('gd_info')) {
-            $this->markTestSkipped('Gd not installed');
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @see \Imagine\Test\Image\AbstractImagineTest::testShouldOpenAWebPImage()
-     */
-    public function testShouldOpenAWebPImage()
-    {
-        if (!function_exists('imagewebp')) {
-            $this->markTestSkipped('GD webp support is not enabled');
-        }
-
-        return parent::testShouldOpenAWebPImage();
+        return DriverInfo::get($required);
     }
 
     /**

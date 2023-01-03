@@ -21,11 +21,13 @@ class BlackWhiteTest extends FilterTestCase
     /**
      * @dataProvider getData
      *
-     * @param mixed $border
-     * @param mixed $currentColor
-     * @param mixed $expectedColor
+     * @doesNotPerformAssertions
+     *
+     * @param int $border
+     * @param int[] $currentColor
+     * @param int[] $expectedColor
      */
-    public function testCallback($border, $currentColor, $expectedColor)
+    public function testCallback($border, array $currentColor, array $expectedColor)
     {
         $rgb = new RGB();
         $image = $this->getImage();

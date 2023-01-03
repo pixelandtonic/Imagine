@@ -11,15 +11,31 @@
 
 namespace Imagine\Test\Image;
 
+use Imagine\Driver\Info;
+use Imagine\Driver\InfoProvider;
+use Imagine\Exception\NotSupportedException;
 use Imagine\Image\Box;
 use Imagine\Image\ImageInterface;
-use Imagine\Image\ImagineInterface;
 use Imagine\Image\Palette\RGB;
 use Imagine\Image\Point;
 use Imagine\Test\ImagineTestCase;
 
-abstract class AbstractLayersTest extends ImagineTestCase
+abstract class AbstractLayersTest extends ImagineTestCase implements InfoProvider
 {
+    /**
+     * @return \Imagine\Image\ImagineInterface
+     */
+    abstract protected function getImagine();
+
+    /**
+     * @param string|null $path
+     *
+     * @return \Imagine\Image\ImageInterface
+     */
+    abstract protected function getImage($path = null);
+
+    abstract protected function assertLayersEquals(ImageInterface $expected, ImageInterface $actual);
+
     public function testMerge()
     {
         $palette = new RGB();
@@ -129,11 +145,17 @@ abstract class AbstractLayersTest extends ImagineTestCase
      */
     public function testLayerArrayAccessInvalidArgumentExceptions($offset)
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_MULTIPLELAYERS);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $this->isGoingToThrowException('Imagine\Exception\InvalidArgumentException');
         $firstImage = $this->getImage(IMAGINE_TEST_FIXTURESFOLDER . '/pink.gif');
         $secondImage = $this->getImage(IMAGINE_TEST_FIXTURESFOLDER . '/pink.gif');
 
         $layers = $firstImage->layers();
+        $this->assertInstanceOf('Imagine\Image\LayersInterface', $layers);
 
         $layers[$offset] = $secondImage;
     }
@@ -145,22 +167,31 @@ abstract class AbstractLayersTest extends ImagineTestCase
      */
     public function testLayerArrayAccessOutOfBoundsExceptions($offset)
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_MULTIPLELAYERS);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $this->isGoingToThrowException('Imagine\Exception\OutOfBoundsException');
         $firstImage = $this->getImage(IMAGINE_TEST_FIXTURESFOLDER . '/pink.gif');
         $secondImage = $this->getImage(IMAGINE_TEST_FIXTURESFOLDER . '/pink.gif');
 
         $layers = $firstImage->layers();
+        $this->assertInstanceOf('Imagine\Image\LayersInterface', $layers);
 
         $layers[$offset] = $secondImage;
     }
 
-    /**
-     * @doesNotPerformAssertions
-     */
     public function testAnimateEmpty()
     {
+        try {
+            $this->getDriverInfo()->requireFeature(array(Info::FEATURE_MULTIPLELAYERS, Info::FEATURE_ADDLAYERSTOEMPTYIMAGE));
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $image = $this->getImage();
         $layers = $image->layers();
+        $this->assertInstanceOf('Imagine\Image\LayersInterface', $layers);
 
         $layers[] = $this->getImage(IMAGINE_TEST_FIXTURESFOLDER . '/pink.gif');
         $layers[] = $this->getImage(IMAGINE_TEST_FIXTURESFOLDER . '/yellow.gif');
@@ -175,15 +206,20 @@ abstract class AbstractLayersTest extends ImagineTestCase
 
     /**
      * @dataProvider provideAnimationParameters
-     * @doesNotPerformAssertions
      *
      * @param mixed $delay
      * @param mixed $loops
      */
     public function testAnimateWithParameters($delay, $loops)
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_MULTIPLELAYERS);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $image = $this->getImage(IMAGINE_TEST_FIXTURESFOLDER . '/pink.gif');
         $layers = $image->layers();
+        $this->assertInstanceOf('Imagine\Image\LayersInterface', $layers);
 
         $layers[] = $this->getImage(IMAGINE_TEST_FIXTURESFOLDER . '/yellow.gif');
         $layers[] = $this->getImage(IMAGINE_TEST_FIXTURESFOLDER . '/blue.gif');
@@ -215,9 +251,15 @@ abstract class AbstractLayersTest extends ImagineTestCase
      */
     public function testAnimateWithWrongParameters($delay, $loops)
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_MULTIPLELAYERS);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $this->isGoingToThrowException('Imagine\Exception\InvalidArgumentException');
         $image = $this->getImage(IMAGINE_TEST_FIXTURESFOLDER . '/pink.gif');
         $layers = $image->layers();
+        $this->assertInstanceOf('Imagine\Image\LayersInterface', $layers);
 
         $layers[] = $this->getImage(IMAGINE_TEST_FIXTURESFOLDER . '/yellow.gif');
         $layers[] = $this->getImage(IMAGINE_TEST_FIXTURESFOLDER . '/blue.gif');
@@ -258,18 +300,4 @@ abstract class AbstractLayersTest extends ImagineTestCase
             array(2),
         );
     }
-
-    /**
-     * @param string|null $path
-     *
-     * @return ImageInterface
-     */
-    abstract protected function getImage($path = null);
-
-    /**
-     * @return ImagineInterface
-     */
-    abstract protected function getImagine();
-
-    abstract protected function assertLayersEquals($expected, $actual);
 }

@@ -11,9 +11,16 @@
 
 namespace Imagine\Test\Image;
 
+use Imagine\Driver\Info;
+use Imagine\Driver\InfoProvider;
+use Imagine\Exception\NotSupportedException;
 use Imagine\Image\Box;
 use Imagine\Image\Fill\Gradient\Horizontal;
+use Imagine\Image\Format;
 use Imagine\Image\ImageInterface;
+use Imagine\Image\Palette\CMYK;
+use Imagine\Image\Palette\Color\ColorInterface;
+use Imagine\Image\Palette\Grayscale;
 use Imagine\Image\Palette\RGB;
 use Imagine\Image\Point;
 use Imagine\Image\Point\Center;
@@ -21,8 +28,27 @@ use Imagine\Image\PointSigned;
 use Imagine\Image\Profile;
 use Imagine\Test\ImagineTestCase;
 
-abstract class AbstractImageTest extends ImagineTestCase
+abstract class AbstractImageTest extends ImagineTestCase implements InfoProvider
 {
+    /**
+     * @return \Imagine\Image\ImagineInterface
+     */
+    abstract protected function getImagine();
+
+    /**
+     * @param ImageInterface $image
+     *
+     * @return array|null
+     */
+    abstract protected function getImageResolution(ImageInterface $image);
+
+    /**
+     * @param ImageInterface $image
+     *
+     * @return array|null
+     */
+    abstract protected function getSamplingFactors(ImageInterface $image);
+
     public function testPaletteIsRGBIfRGBImage()
     {
         $image = $this->getImagine()->open(IMAGINE_TEST_FIXTURESFOLDER . '/google.png');
@@ -31,12 +57,23 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     public function testPaletteIsCMYKIfCMYKImage()
     {
+        try {
+            $this->getDriverInfo()->requirePaletteSupport(new CMYK());
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $image = $this->getImagine()->open(IMAGINE_TEST_FIXTURESFOLDER . '/pixel-CMYK.jpg');
         $this->assertInstanceOf('Imagine\Image\Palette\CMYK', $image->palette());
     }
 
     public function testPaletteIsGrayIfGrayImage()
     {
+        try {
+            $this->getDriverInfo()->requirePaletteSupport(new Grayscale());
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_DETECTGRAYCOLORSPACE);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $image = $this->getImagine()->open(IMAGINE_TEST_FIXTURESFOLDER . '/pixel-grayscale.jpg');
         $this->assertInstanceOf('Imagine\Image\Palette\Grayscale', $image->palette());
     }
@@ -56,7 +93,7 @@ abstract class AbstractImageTest extends ImagineTestCase
     public function testPaletteAssociatedIsRelatedToGivenColor($paletteClass, $input)
     {
         $palette = new $paletteClass();
-        /* @var \Imagine\Image\Palette\PaletteInterface $palette */
+        // @var \Imagine\Image\Palette\PaletteInterface $palette
         $palette->profile();
 
         $image = $this
@@ -96,6 +133,11 @@ abstract class AbstractImageTest extends ImagineTestCase
         $image->usePalette($targetPalette);
 
         $this->assertEquals($targetPalette, $image->palette());
+
+        if ($targetPalette instanceof RGB) {
+            $image->draw()->dot(new Point(1, 0), $targetPalette->color('FF0000'));
+        }
+
         $suffix = array();
         $tmp = explode('\\', $from);
         $suffix[] = array_pop($tmp);
@@ -188,11 +230,15 @@ abstract class AbstractImageTest extends ImagineTestCase
         );
     }
 
-    /**
-     * @doesNotPerformAssertions
-     */
     public function testProfile()
     {
+        if ($this->getDriverInfo()->hasFeature(Info::FEATURE_COLORPROFILES)) {
+            if (method_exists($this, 'expectNotToPerformAssertions')) {
+                $this->expectNotToPerformAssertions();
+            }
+        } else {
+            $this->isGoingToThrowException('Imagine\Exception\RuntimeException');
+        }
         $this
             ->getImagine()
             ->create(new Box(10, 10))
@@ -201,6 +247,11 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     public function testRotateWithNoBackgroundColor()
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_ROTATEIMAGEWITHCORRECTSIZE);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $factory = $this->getImagine();
 
         $image = $factory->open(IMAGINE_TEST_FIXTURESFOLDER . '/google.png');
@@ -214,6 +265,11 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     public function testRotateWithTransparency()
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_TRANSPARENCY);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $image = $this->getImagine()->open(IMAGINE_TEST_FIXTURESFOLDER . '/large.jpg');
         $color = $image->rotate(45, $image->palette()->color('#fff', 0))->getColorAt(new Point(0, 0));
         $this->assertSame(0, $color->getAlpha());
@@ -242,11 +298,11 @@ abstract class AbstractImageTest extends ImagineTestCase
         $size = $image->getSize();
 
         $image->paste(
-                $image->copy()
+            $image->copy()
                     ->resize($size->scale(0.5))
                     ->flipVertically(),
-                new Center($size)
-            );
+            new Center($size)
+        );
     }
 
     /**
@@ -488,7 +544,7 @@ abstract class AbstractImageTest extends ImagineTestCase
         $image = $factory->create($size, $palette->color('f00'));
 
         $image->paste(
-                $factory->create($size, $palette->color('ff0'))
+            $factory->create($size, $palette->color('ff0'))
                     ->applyMask(
                         $factory->create($size)
                             ->fill(
@@ -499,8 +555,8 @@ abstract class AbstractImageTest extends ImagineTestCase
                                 )
                             )
                     ),
-                new Point(0, 0)
-            );
+            new Point(0, 0)
+        );
 
         $size = $image->getSize();
 
@@ -513,18 +569,38 @@ abstract class AbstractImageTest extends ImagineTestCase
     public function testMask()
     {
         $factory = $this->getImagine();
+        $palette = new RGB();
+        $box = new Box(3, 1);
 
-        $image = $factory->open(IMAGINE_TEST_FIXTURESFOLDER . '/google.png');
+        // Create 3x1 px red image
+        $image = $factory->create($box, $palette->color('f00')); // red bg
 
-        $filename = $this->getTemporaryFilename('.png');
-        $image->applyMask($image->mask())
-            ->save($filename);
+        // Create 3x1 mask with px values: [000, 808080, fff]
+        $mask = $factory->create($box, $palette->color('000')); // black bg
+        $mask->draw()
+            ->dot(new Point(1, 0), $palette->color('808080'))
+            ->dot(new Point(2, 0), $palette->color('fff'));
 
-        $size = $factory->open($filename)
-            ->getSize();
+        $image->applyMask($mask);
 
-        $this->assertEquals(364, $size->getWidth());
-        $this->assertEquals(126, $size->getHeight());
+        // Test all pixel values
+        $px = $image->getColorAt(new Point(0, 0));
+        $this->assertEquals(100, $px->getAlpha());
+        $this->assertEquals(255, $px->getValue(ColorInterface::COLOR_RED));
+        $this->assertEquals(0, $px->getValue(ColorInterface::COLOR_GREEN));
+        $this->assertEquals(0, $px->getValue(ColorInterface::COLOR_BLUE));
+
+        $px = $image->getColorAt(new Point(1, 0));
+        $this->assertEquals(50, $px->getAlpha());
+        $this->assertEquals(255, $px->getValue(ColorInterface::COLOR_RED));
+        $this->assertEquals(0, $px->getValue(ColorInterface::COLOR_GREEN));
+        $this->assertEquals(0, $px->getValue(ColorInterface::COLOR_BLUE));
+
+        $px = $image->getColorAt(new Point(2, 0));
+        $this->assertEquals(0, $px->getAlpha());
+        $this->assertEquals(255, $px->getValue(ColorInterface::COLOR_RED));
+        $this->assertEquals(0, $px->getValue(ColorInterface::COLOR_GREEN));
+        $this->assertEquals(0, $px->getValue(ColorInterface::COLOR_BLUE));
     }
 
     public function testColorHistogram()
@@ -538,6 +614,11 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     public function testImageResolutionChange()
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_EXPORTWITHCUSTOMRESOLUTION);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $imagine = $this->getImagine();
         $image = $imagine->open(IMAGINE_TEST_FIXTURESFOLDER . '/resize/210-design-19933.jpg');
         $outfile = $this->getTemporaryFilename('.jpg');
@@ -613,6 +694,11 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     public function testCountAMultiLayeredImage()
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_MULTIPLELAYERS);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $this->assertGreaterThan(1, count($this->getMultiLayeredImage()->layers()));
     }
 
@@ -634,6 +720,11 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     public function testChangeColorSpaceAndStripImage()
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_COLORPROFILES);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $palette = new RGB();
         $color = $this
             ->getImagine()
@@ -647,6 +738,11 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     public function testStripImageWithInvalidProfile()
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_COLORPROFILES);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $image = $this
             ->getImagine()
             ->open(IMAGINE_TEST_FIXTURESFOLDER . '/invalid-icc-profile.jpg');
@@ -683,6 +779,12 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     public function testGetColorAtCMYK()
     {
+        try {
+            $this->getDriverInfo()->requirePaletteSupport(new CMYK());
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_GETCMYKCOLORSCORRECTLY);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $color = $this
             ->getImagine()
             ->open(IMAGINE_TEST_FIXTURESFOLDER . '/pixel-CMYK.jpg')
@@ -709,6 +811,11 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     public function testStripGBRImageHasGoodColors()
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_COLORPROFILES);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $image = $this
             ->getImagine()
             ->open(IMAGINE_TEST_FIXTURESFOLDER . '/pixel-GBR.jpg')
@@ -727,6 +834,11 @@ abstract class AbstractImageTest extends ImagineTestCase
      */
     public function testResizeAnimatedGifResizeResult()
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_MULTIPLELAYERS);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $imagine = $this->getImagine();
 
         $image = $imagine->open(IMAGINE_TEST_FIXTURESFOLDER . '/anima.gif');
@@ -819,6 +931,11 @@ abstract class AbstractImageTest extends ImagineTestCase
      */
     public function testResolutionOnSave($source)
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_EXPORTWITHCUSTOMRESOLUTION);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $file = $this->getTemporaryFilename(basename($source) . '.jpg');
 
         $image = $this->getImagine()->open($source);
@@ -843,6 +960,11 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     public function testFillAlphaPrecision()
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_TRANSPARENCY);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $imagine = $this->getImagine();
         $palette = new RGB();
         $image = $imagine->create(new Box(1, 1), $palette->color('#f00'));
@@ -855,6 +977,11 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     public function testImageCreatedAlpha()
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_TRANSPARENCY);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $palette = new RGB();
         $image = $this->getImagine()->create(new Box(1, 1), $palette->color('#7f7f7f', 10));
         $actualColor = $image->getColorAt(new Point(0, 0));
@@ -894,20 +1021,32 @@ abstract class AbstractImageTest extends ImagineTestCase
         );
     }
 
-    public function testJpegSamplingFactors()
+    /**
+     * @dataProvider jpegSamplingFactorsProvider
+     *
+     * @param array $sampling
+     * @param array $expected
+     */
+    public function testJpegSamplingFactors(array $sampling, array $expected)
     {
+        try {
+            $this->getDriverInfo()->requireFeature(Info::FEATURE_EXPORTWITHCUSTOMJPEGSAMPLINGFACTORS);
+        } catch (NotSupportedException $x) {
+            $this->markTestSkipped($x->getMessage());
+        }
         $image = $this->getImagine()->open(IMAGINE_TEST_FIXTURESFOLDER . '/large.jpg');
 
-        $samplings = array(
-            array(1, 1, 1),
-            array(2, 1, 1),
-        );
+        $filename = $this->getTemporaryFilename(implode('-', $sampling) . '.jpg');
+        $image->save($filename, array('jpeg_sampling_factors' => $sampling));
+        $this->assertEquals($expected, $this->getSamplingFactors($image));
+    }
 
-        foreach ($samplings as $sampling) {
-            $filename = $this->getTemporaryFilename(implode('-', $sampling) . '.jpg');
-            $image->save($filename, array('jpeg_sampling_factors' => $sampling));
-            $this->assertEquals($sampling, $this->getSamplingFactors($image));
-        }
+    public function jpegSamplingFactorsProvider()
+    {
+        return array(
+            array(array(1, 1, 1), array(1, 1, 1)),
+            array(array(2, 1, 1), array(2, 1, 1)),
+        );
     }
 
     public function pasteWithAlphaProvider()
@@ -977,11 +1116,31 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     public function imageCompressionQualityProvider()
     {
-        return array(
-            array('jpg', array('jpeg_quality' => 0), array('jpeg_quality' => 100)),
-            array('png', array('png_compression_level' => 9), array('png_compression_level' => 0)),
-            array('webp', array('webp_quality' => 0), array('webp_quality' => 100)),
+        try {
+            $driverInfo = static::getDriverInfo();
+            $driverInfo->checkVersionIsSupported();
+        } catch (NotSupportedException $x) {
+            return array();
+        }
+
+        $cases = array(
+            array(Format::ID_JPEG, array('jpeg_quality' => 0), array('jpeg_quality' => 100)),
+            array(Format::ID_PNG, array('png_compression_level' => 9), array('png_compression_level' => 0)),
+            array(Format::ID_WEBP, array('webp_quality' => 0), array('webp_quality' => 100)),
+            array(Format::ID_AVIF, array('avif_quality' => 0), array('avif_quality' => 100)),
+            array(Format::ID_AVIF, array('avif_quality' => 0), array('avif_lossless' => true)),
+            array(Format::ID_HEIC, array('heic_quality' => 0), array('heic_quality' => 100)),
+            array(Format::ID_HEIC, array('heic_quality' => 0), array('heic_lossless' => true)),
+            array(Format::ID_JXL, array('jxl_quality' => 0), array('jxl_quality' => 100)),
+            array(Format::ID_JXL, array('jxl_quality' => 0), array('jxl_lossless' => true)),
         );
+
+        return array_values(array_filter(
+            $cases,
+            function (array $case) use ($driverInfo) {
+                return $driverInfo->isFormatSupported($case[0]);
+            }
+        ));
     }
 
     /**
@@ -993,6 +1152,10 @@ abstract class AbstractImageTest extends ImagineTestCase
      */
     public function testSaveCompressionQuality($format, array $smallSizeOptions, array $bigSizeOptions)
     {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' && $format === Format::ID_HEIC) {
+            $this->markTestSkipped('Cannot test HEIC on Windows because of bug https://github.com/ImageMagick/ImageMagick/issues/1648');
+        }
+
         $filenameSmall = $this->getTemporaryFilename('small.' . $format);
         $filenameBig = $this->getTemporaryFilename('big.' . $format);
         $image = $this->getImagine()->open(IMAGINE_TEST_FIXTURESFOLDER . '/xparent.gif');
@@ -1019,6 +1182,7 @@ abstract class AbstractImageTest extends ImagineTestCase
 
     /**
      * @dataProvider provideExensions
+     *
      * @doesNotPerformAssertions
      *
      * @param string $extension
@@ -1047,8 +1211,6 @@ abstract class AbstractImageTest extends ImagineTestCase
         $this->assertTrue((bool) preg_match("/^\xFF\xD8\XFF\xE0..JFIF$/", $relevantOutputImageBytes), 'Exported image is not in JPEG format');
     }
 
-    abstract protected function getImageResolution(ImageInterface $image);
-
     private function getMonoLayeredImage()
     {
         return $this->getImagine()->open(IMAGINE_TEST_FIXTURESFOLDER . '/google.png');
@@ -1063,16 +1225,4 @@ abstract class AbstractImageTest extends ImagineTestCase
     {
         return $this->getImagine()->open(IMAGINE_TEST_FIXTURESFOLDER . '/anima.gif');
     }
-
-    /**
-     * @return \Imagine\Image\ImagineInterface
-     */
-    abstract protected function getImagine();
-
-    /**
-     * @param ImageInterface $image
-     *
-     * @return array
-     */
-    abstract protected function getSamplingFactors(ImageInterface $image);
 }

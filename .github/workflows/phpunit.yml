@@ -1,0 +1,136 @@
+name: PHPUnit
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/phpunit.yml
+      - "src/**"
+      - "tests/**"
+      - composer.json
+      - phpunit.xml.dist
+  push:
+    paths:
+      - .github/workflows/phpunit.yml
+      - "src/**"
+      - "tests/**"
+      - composer.json
+      - phpunit.xml.dist
+
+env:
+  ALL_DRIVERS: "gd gmagick imagick"
+  IMAGINE_TEST_WEBSERVERURL: http://localhost:8013
+  # Uncomment the following line to save test files as artifacts
+  #IMAGINE_TEST_KEEP_TEMPFILES: yes
+
+jobs:
+
+  windows:
+    name: PHP ${{ matrix.php-version }} - ${{ matrix.extensions }} (Windows)
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version:
+          - "7.4"
+          - "8.1"
+        extensions:
+          - gd,imagick
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: exif,${{ matrix.extensions }}
+          tools: composer:v2
+          coverage: none
+      - name: Inspect environment
+        id: inspect
+        run: |
+          $EXCLUDED_GROUPS='always-skipped'
+          foreach ($DRIVER in $Env:ALL_DRIVERS.split()) {
+            Write-Output "### CHECKING $DRIVER"
+            php --ri $DRIVER
+            if ($LASTEXITCODE -ne 0) {
+                $EXCLUDED_GROUPS="$EXCLUDED_GROUPS,$DRIVER"
+                $Global:LASTEXITCODE = 0
+            }
+            Write-Output ''
+          }
+          Write-Output "::set-output name=excluded-groups::$EXCLUDED_GROUPS"
+
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install composer dependencies
+        run: composer update --ansi --no-interaction
+      - name: Start test web server
+        uses: Eun/http-server-action@v1
+        with:
+          directory: ${{ github.workspace }}/tests
+          port: 8013
+      - name: PHPUnit
+        run: composer run test --ansi --no-interaction -- --exclude-group "${{ steps.inspect.outputs.excluded-groups }}"
+      - name: Save tests temporary files
+        if: always() && env.IMAGINE_TEST_KEEP_TEMPFILES == 'yes'
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows-${{ matrix.php-version }}-${{ matrix.extensions }}
+          path: tests/tmp/
+          retention-days: 1
+
+  docker:
+    name: PHP ${{ matrix.php-version }} - ${{ matrix.image-suffix }} (Docker)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version:
+          - "5.5"
+          - "5.6"
+          - "7.0"
+          - "7.1"
+          - "7.2"
+          - "7.3"
+          - "7.4"
+          - "8.0"
+          - "8.1"
+        image-suffix:
+          - gd-gmagick
+          - gd-imagick
+    container: ghcr.io/php-imagine/test:${{ matrix.php-version }}-${{ matrix.image-suffix }}
+    steps:
+      - name: Inspect environment
+        id: inspect
+        run: |
+          EXCLUDED_GROUPS=always-skipped
+          for DRIVER in $ALL_DRIVERS; do
+            echo "### CHECKING $DRIVER"
+            if ! php --ri $DRIVER; then
+                EXCLUDED_GROUPS="$EXCLUDED_GROUPS,$DRIVER"
+            fi
+            echo ''
+          done
+          echo "::set-output name=excluded-groups::$EXCLUDED_GROUPS"
+      - name: Enable opcache
+        if: matrix.php-version == '7.3'
+        run: |
+          docker-php-ext-enable opcache
+          echo 'opcache.enable_cli=1' >> "$PHP_INI_DIR/conf.d/docker-php-ext-opcache.ini"
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install composer dependencies
+        run: composer update --ansi --no-interaction
+      - name: Start test web server
+        id: start-webserver
+        run: |
+          cd ./tests
+          php -n -S 0.0.0.0:8013 &
+          cd - >/dev/null
+      - name: PHPUnit
+        run: composer run test --ansi --no-interaction -- --exclude-group "${{ steps.inspect.outputs.excluded-groups }}"
+      - name: Save tests temporary files
+        if: always() && env.IMAGINE_TEST_KEEP_TEMPFILES == 'yes'
+        uses: actions/upload-artifact@v2
+        with:
+          name: docker-${{ matrix.php-version }}-${{ matrix.image-suffix }}
+          path: tests/tmp/
+          retention-days: 1

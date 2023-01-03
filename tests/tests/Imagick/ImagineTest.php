@@ -11,6 +11,7 @@
 
 namespace Imagine\Test\Imagick;
 
+use Imagine\Imagick\DriverInfo;
 use Imagine\Imagick\Imagine;
 use Imagine\Test\Image\AbstractImagineTest;
 
@@ -22,29 +23,11 @@ class ImagineTest extends AbstractImagineTest
     /**
      * {@inheritdoc}
      *
-     * @see \Imagine\Test\ImagineTestCaseBase::setUpBase()
+     * @see \Imagine\Driver\InfoProvider::getDriverInfo()
      */
-    protected function setUpBase()
+    public static function getDriverInfo($required = true)
     {
-        parent::setUpBase();
-
-        if (!class_exists('Imagick')) {
-            $this->markTestSkipped('Imagick is not installed');
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     *
-     * @see \Imagine\Test\Image\AbstractImagineTest::testShouldOpenAWebPImage()
-     */
-    public function testShouldOpenAWebPImage()
-    {
-        if (!in_array('WEBP', \Imagick::queryFormats('WEBP'), true)) {
-            $this->markTestSkipped('Imagick webp support is not enabled');
-        }
-
-        return parent::testShouldOpenAWebPImage();
+        return DriverInfo::get($required);
     }
 
     /**

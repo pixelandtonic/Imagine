@@ -11,6 +11,7 @@
 
 namespace Imagine\Test\Gd;
 
+use Imagine\Gd\DriverInfo;
 use Imagine\Gd\Imagine;
 use Imagine\Test\Draw\AbstractDrawerTest;
 
@@ -22,71 +23,20 @@ class DrawerTest extends AbstractDrawerTest
     /**
      * {@inheritdoc}
      *
-     * @see \Imagine\Test\ImagineTestCaseBase::setUpBase()
+     * @see \Imagine\Driver\InfoProvider::getDriverInfo()
      */
-    protected function setUpBase()
+    public static function getDriverInfo($required = true)
     {
-        parent::setUpBase();
-
-        if (!function_exists('gd_info')) {
-            $this->markTestSkipped('Gd not installed');
-        }
+        return DriverInfo::get($required);
     }
 
     /**
-     * @dataProvider thicknessAndFillProvider
-     *
      * {@inheritdoc}
      *
-     * @see \Imagine\Test\Draw\AbstractDrawerTest::testChord()
+     * @see \Imagine\Test\Draw\AbstractDrawerTest::getImagine()
      */
-    public function testChord($thickness, $fill)
-    {
-        if ($fill) {
-            $this->markTestSkipped('The GD Drawer can NOT draw correctly filled chords');
-        }
-        parent::testChord($thickness, $fill);
-    }
-
-    /**
-     * @dataProvider thicknessAndFillProvider
-     *
-     * {@inheritdoc}
-     *
-     * @see \Imagine\Test\Draw\AbstractDrawerTest::testCircle()
-     */
-    public function testCircle($thickness, $fill)
-    {
-        if (!$fill && $thickness > 1) {
-            $this->markTestSkipped('The GD Drawer can NOT draw correctly not filled circles with a thickness greater than 1');
-        }
-        parent::testCircle($thickness, $fill);
-    }
-
-    /**
-     * @dataProvider thicknessAndFillProvider
-     *
-     * {@inheritdoc}
-     *
-     * @see \Imagine\Test\Draw\AbstractDrawerTest::testEllipse()
-     */
-    public function testEllipse($thickness, $fill)
-    {
-        if (!$fill && $thickness > 1) {
-            $this->markTestSkipped('The GD Drawer can NOT draw correctly not filled ellipses with a thickness greater than 1');
-        }
-        parent::testEllipse($thickness, $fill);
-    }
-
     protected function getImagine()
     {
         return new Imagine();
-    }
-
-    protected function isFontTestSupported()
-    {
-        $infos = gd_info();
-
-        return isset($infos['FreeType Support']) ? $infos['FreeType Support'] : false;
     }
 }
