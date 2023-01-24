@@ -1041,7 +1041,7 @@ final class Image extends AbstractImage implements InfoProvider
         if ($this->imagick->getnumberimages() > 0 && defined('Imagick::ALPHACHANNEL_REMOVE') && defined('Imagick::ALPHACHANNEL_SET')) {
             $originalImageIndex = $this->imagick->getiteratorindex();
             foreach ($this->imagick as $frame) {
-                if ($palette->supportsAlpha()) {
+                if ($palette->supportsAlpha() && $this->imagick->getImageAlphaChannel()) {
                     $frame->setimagealphachannel(\Imagick::ALPHACHANNEL_SET);
                 } else {
                     $frame->setimagealphachannel(\Imagick::ALPHACHANNEL_REMOVE);
