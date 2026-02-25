@@ -83,6 +83,16 @@ class LayersTest extends AbstractLayersTest
         $this->assertCount(42, $layers);
     }
 
+    public function testWebpFormatIsAllowedAsAnimatedFormat()
+    {
+        $image = $this->getImagine()->open(IMAGINE_TEST_FIXTURESFOLDER . '/anima3.gif');
+        $originalDelayInTicks = $image->layers()->get(0)->getImagick()->getImageDelay();
+        $image->layers()->animate('webp', (int) (1000 + $originalDelayInTicks * 1000 / 20), 0);
+        $this->assertSame('webp', $image->getImagick()->getFormat());
+        $newDelayInTicks = $image->layers()->get(0)->getImagick()->getImageDelay();
+        $this->assertNotEquals($originalDelayInTicks, $newDelayInTicks);
+    }
+
     public function testGetLayer()
     {
         $palette = new RGB();

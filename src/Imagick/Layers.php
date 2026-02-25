@@ -92,8 +92,8 @@ class Layers extends AbstractLayers implements InfoProvider
     public function animate($format, $delay, $loops)
     {
         $formatInfo = Format::get($format);
-        if ($formatInfo === null || $formatInfo->getID() !== Format::ID_GIF) {
-            throw new InvalidArgumentException('Animated picture is currently only supported on gif');
+        if ($formatInfo === null || !in_array($formatInfo->getID(), array(Format::ID_GIF, Format::ID_WEBP))) {
+            throw new InvalidArgumentException('Animated picture is currently only supported on gif and webp');
         }
 
         if (!is_int($loops) || $loops < 0) {
@@ -108,7 +108,7 @@ class Layers extends AbstractLayers implements InfoProvider
             foreach ($this as $offset => $layer) {
                 $imagick = $layer->getImagick();
                 $this->resource->setIteratorIndex($offset);
-                $this->resource->setFormat(Format::ID_GIF);
+                $this->resource->setFormat($formatInfo->getID());
 
                 if ($delay !== null) {
                     $imagick->setImageDelay($delay);
@@ -159,6 +159,8 @@ class Layers extends AbstractLayers implements InfoProvider
      * {@inheritdoc}
      *
      * @see \Iterator::current()
+     *
+     * @return mixed
      */
     #[\ReturnTypeWillChange]
     public function current()
@@ -193,6 +195,8 @@ class Layers extends AbstractLayers implements InfoProvider
      * {@inheritdoc}
      *
      * @see \Iterator::key()
+     *
+     * @return mixed
      */
     #[\ReturnTypeWillChange]
     public function key()
@@ -204,6 +208,8 @@ class Layers extends AbstractLayers implements InfoProvider
      * {@inheritdoc}
      *
      * @see \Iterator::next()
+     *
+     * @return mixed
      */
     #[\ReturnTypeWillChange]
     public function next()
@@ -215,6 +221,8 @@ class Layers extends AbstractLayers implements InfoProvider
      * {@inheritdoc}
      *
      * @see \Iterator::rewind()
+     *
+     * @return void
      */
     #[\ReturnTypeWillChange]
     public function rewind()
@@ -226,6 +234,8 @@ class Layers extends AbstractLayers implements InfoProvider
      * {@inheritdoc}
      *
      * @see \Iterator::valid()
+     *
+     * @return bool
      */
     #[\ReturnTypeWillChange]
     public function valid()
@@ -237,6 +247,8 @@ class Layers extends AbstractLayers implements InfoProvider
      * {@inheritdoc}
      *
      * @see \Countable::count()
+     *
+     * @return int
      */
     #[\ReturnTypeWillChange]
     public function count()
@@ -252,6 +264,8 @@ class Layers extends AbstractLayers implements InfoProvider
      * {@inheritdoc}
      *
      * @see \ArrayAccess::offsetExists()
+     *
+     * @return bool
      */
     #[\ReturnTypeWillChange]
     public function offsetExists($offset)
@@ -263,6 +277,8 @@ class Layers extends AbstractLayers implements InfoProvider
      * {@inheritdoc}
      *
      * @see \ArrayAccess::offsetGet()
+     *
+     * @return mixed
      */
     #[\ReturnTypeWillChange]
     public function offsetGet($offset)
@@ -274,6 +290,8 @@ class Layers extends AbstractLayers implements InfoProvider
      * {@inheritdoc}
      *
      * @see \ArrayAccess::offsetSet()
+     *
+     * @return void
      */
     #[\ReturnTypeWillChange]
     public function offsetSet($offset, $image)
@@ -317,6 +335,8 @@ class Layers extends AbstractLayers implements InfoProvider
      * {@inheritdoc}
      *
      * @see \ArrayAccess::offsetUnset()
+     *
+     * @return void
      */
     #[\ReturnTypeWillChange]
     public function offsetUnset($offset)

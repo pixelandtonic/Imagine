@@ -9,6 +9,7 @@
 namespace Imagine\File;
 
 use Imagine\Exception\InvalidArgumentException;
+use Imagine\Exception\NotFoundException;
 use Imagine\Exception\RuntimeException;
 
 /**
@@ -157,11 +158,12 @@ class Loader implements LoaderInterface
      * Check that the file exists and it's readable.
      *
      * @throws \Imagine\Exception\InvalidArgumentException
+     * @throws \Imagine\Exception\NotFoundException
      */
     protected function checkLocalFile()
     {
         if (!is_file($this->path)) {
-            throw new InvalidArgumentException(sprintf('File %s does not exist.', $this->path));
+            throw new NotFoundException(sprintf('File %s does not exist.', $this->path));
         }
         if (!is_readable($this->path)) {
             throw new InvalidArgumentException(sprintf('File %s is not readable.', $this->path));
@@ -212,6 +214,7 @@ class Loader implements LoaderInterface
      * Read a remote file using the cURL extension.
      *
      * @throws \Imagine\Exception\InvalidArgumentException
+     * @throws \Imagine\Exception\NotFoundException
      *
      * @return string
      */
@@ -233,13 +236,19 @@ class Loader implements LoaderInterface
                 $errorMessage = 'curl_exec() failed.';
             }
             $errorCode = curl_errno($curl);
-            curl_close($curl);
+            if (PHP_VERSION_ID < 80000) {
+                curl_close($curl);
+            }
+
             throw new RuntimeException($errorMessage, $errorCode);
         }
         $responseInfo = curl_getinfo($curl);
-        curl_close($curl);
+        if (PHP_VERSION_ID < 80000) {
+            curl_close($curl);
+        }
+
         if ($responseInfo['http_code'] == 404) {
-            throw new InvalidArgumentException(sprintf('File %s does not exist.', $this->path));
+            throw new NotFoundException(sprintf('File %s does not exist.', $this->path));
         }
         if ($responseInfo['http_code'] < 200 || $responseInfo['http_code'] >= 300) {
             throw new InvalidArgumentException(sprintf('Failed to download "%s": %s', $this->path, $responseInfo['http_code']));
@@ -263,17 +272,6 @@ class Loader implements LoaderInterface
         }
         if (!@curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true)) {
             throw new RuntimeException('curl_setopt(CURLOPT_FOLLOWLOCATION) failed.');
-        }
-        if (defined('CURL_SSLVERSION_TLSv1_1')) {
-            if (!@curl_setopt($curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_1)) {
-                throw new RuntimeException('curl_setopt(CURLOPT_SSLVERSION) failed.');
-            }
-        } else {
-            // Manually checked that CURL_SSLVERSION_TLSv1_1 is 5 for any version of curl from 7.34.0 to 7.61.0
-            // See for example https://github.com/curl/curl/blob/curl-7_34_0/include/curl/curl.h#L1668
-            if (!@curl_setopt($curl, CURLOPT_SSLVERSION, 5)) {
-                throw new RuntimeException('curl_setopt(CURLOPT_SSLVERSION) failed.');
-            }
         }
     }
 

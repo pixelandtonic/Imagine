@@ -952,10 +952,14 @@ abstract class AbstractImageTest extends ImagineTestCase implements InfoProvider
 
     public function provideVariousSources()
     {
-        return array(
-            array(IMAGINE_TEST_FIXTURESFOLDER . '/example.svg'),
+        $result = array(
             array(IMAGINE_TEST_FIXTURESFOLDER . '/100-percent-black.png'),
         );
+        if ($this->getImagine() instanceof \Imagine\Imagick\Imagine) {
+            $result[] = array(IMAGINE_TEST_FIXTURESFOLDER . '/example.svg');
+        }
+
+        return $result;
     }
 
     public function testFillAlphaPrecision()
@@ -1127,6 +1131,7 @@ abstract class AbstractImageTest extends ImagineTestCase implements InfoProvider
             array(Format::ID_JPEG, array('jpeg_quality' => 0), array('jpeg_quality' => 100)),
             array(Format::ID_PNG, array('png_compression_level' => 9), array('png_compression_level' => 0)),
             array(Format::ID_WEBP, array('webp_quality' => 0), array('webp_quality' => 100)),
+            array(Format::ID_WEBP, array('webp_quality' => 0), array('webp_lossless' => true)),
             array(Format::ID_AVIF, array('avif_quality' => 0), array('avif_quality' => 100)),
             array(Format::ID_AVIF, array('avif_quality' => 0), array('avif_lossless' => true)),
             array(Format::ID_HEIC, array('heic_quality' => 0), array('heic_quality' => 100)),
