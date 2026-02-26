@@ -306,26 +306,250 @@ final class Image extends AbstractImage implements InfoProvider
      *
      * @param BoxInterface $size
      * @param bool $keepImageProfiles Whether to keep ICP and ICM image profiles. Defaults to false.
-     * @param bool $keepExifData      Whether to keep EXIF data. Defaults to false.
-     * @param int $quality    defaults to 82 which produces a very similar image
-     *
-     * @throws \Imagine\Exception\RuntimeException
-     *
+     * @param bool $keepExifData Whether to keep EXIF data. Defaults to false.
+     * @param int $quality defaults to 82 which produces a very similar image.
+     * @param string $filter The resampling filter to use. Defaults to `ImageInterface::FILTER_TRIANGLE`.
+     * @param float $filterRadius The radius of the resampling filter. Defaults to 2.0.
+     * @param float $unsharpMaskRadius The radius to be passed to `\Imagick::unsharpMaskImage()`. Default to 0.25.
+     * @param float $unsharpMaskSigma The standard deviation (sigma) to be passed to `\Imagick::unsharpMaskImage()`. Default to 0.25.
+     * @param float $unsharpMaskAmount The amount to be passed to `\Imagick::unsharpMaskImage()`. Default to 8.0.
+     * @param float $unsharpMaskThreshold The threshold to be passed to `\Imagick::unsharpMaskImage()`. Default to 0.065.
      * @return ImageInterface
+     * @throws RuntimeException
      */
-    public function smartResize(BoxInterface $size, $keepImageProfiles = false, $keepExifData = false, $quality = 82)
-    {
+    public function smartResize(
+        BoxInterface $size,
+        bool $keepImageProfiles = false,
+        bool $keepExifData = false,
+        int $quality = 82,
+        string $filter = ImageInterface::FILTER_TRIANGLE,
+        float $filterRadius = 2.0,
+        float $unsharpMaskRadius = 0.25,
+        float $unsharpMaskSigma = 0.25,
+        float $unsharpMaskAmount = 8.0,
+        float $unsharpMaskThreshold = 0.065,
+    ) {
         try {
-            if ($this->imagick instanceof Imagick) {
-                $this->imagick->smartResize($size->getWidth(), $size->getHeight(), $keepImageProfiles, $keepExifData, $quality);
-            } else {
-                $this->resize($size);
+            $this->imagick->setOption('filter:support', (string)$filterRadius);
+            $this->_thumbnailImage(
+                $size->getWidth(),
+                $size->getHeight(),
+                false,
+                false,
+                $this->getFilter($filter),
+                $keepImageProfiles,
+                $keepExifData,
+            );
+            $this->imagick->unsharpMaskImage($unsharpMaskRadius, $unsharpMaskSigma, $unsharpMaskAmount, $unsharpMaskThreshold);
+
+            // Image posterizing can cause serious performance issues on some systems / Imagick configs.
+            // It also does not serve that much in reducing filesize, so we're leaving it out.
+            // If your system handles it just fine, feel free to enable it.
+
+            // $this->imagick->posterizeImage(136, false);
+
+            $this->imagick->setImageCompressionQuality($quality);
+            $this->imagick->setOption('jpeg:fancy-upsampling', 'off');
+            $this->imagick->setOption('png:compression-filter', '5');
+            $this->imagick->setOption('png:compression-level', '9');
+            $this->imagick->setOption('png:compression-strategy', '1');
+            $this->imagick->setOption('png:exclude-chunk', 'all');
+            $this->imagick->setInterlaceScheme(\Imagick::INTERLACE_NO);
+
+            // Older Imagick versions might not have this. Better make sure.
+            if (!$keepImageProfiles && !$keepExifData && method_exists($this, 'transformimagecolorspace')) {
+                $this->imagick->stripImage();
+                $this->imagick->transformImageColorspace(\Imagick::COLORSPACE_SRGB);
             }
         } catch (\ImagickException $e) {
             throw new RuntimeException('Resize operation failed', $e->getCode(), $e);
         }
 
         return $this;
+    }
+
+    /**
+     * Changes the size of an image to the given dimensions and removes any associated profiles.
+     *
+     * `_thumbnailImage` changes the size of an image to the given dimensions and
+     * removes any associated profiles.  The goal is to produce small low cost
+     * thumbnail images suited for display on the Web.
+     *
+     * With the original `Imagick::thumbnailImage()` implementation, there is no way to choose a
+     * resampling filter. This class recreates Imagick’s C implementation and adds this
+     * additional feature.
+     *
+     * Note: <https://github.com/mkoppanen/imagick/issues/90> has been filed for this issue.
+     *
+     * @param int $columns The number of columns in the output image. 0 = maintain aspect ratio based on $rows.
+     * @param int $rows The number of rows in the output image. 0 = maintain aspect ratio based on $columns.
+     * @param bool $bestfit treat $columns and $rows as a bounding box in which to fit the image.
+     * @param bool $fill fill in the bounding box with the background color.
+     * @param int $filter The resampling filter to use. Refer to the list of filter constants at <http://php.net/manual/en/imagick.constants.php>.
+     * @param bool $keepImageProfiles Whether to keep ICP and ICM image profiles. Defaults to false.
+     * @param bool $keepExifData Whether to keep EXIF data. Defaults to false.
+     * @return bool Whether the operation was performed successfully
+     */
+    private function _thumbnailImage(
+        int $columns,
+        int $rows,
+        bool $bestfit = false,
+        bool $fill = false,
+        int $filter = \Imagick::FILTER_TRIANGLE,
+        bool $keepImageProfiles = false,
+        bool $keepExifData = false,
+    ) {
+        // sample factor; defined in original ImageMagick _thumbnailImage function
+        // the scale to which the image should be resized using the `sample` function
+        $SampleFactor = 5;
+
+        // filter whitelist
+        $filters = array(
+            \Imagick::FILTER_POINT,
+            \Imagick::FILTER_BOX,
+            \Imagick::FILTER_TRIANGLE,
+            \Imagick::FILTER_HERMITE,
+            \Imagick::FILTER_HANNING,
+            \Imagick::FILTER_HAMMING,
+            \Imagick::FILTER_BLACKMAN,
+            \Imagick::FILTER_GAUSSIAN,
+            \Imagick::FILTER_QUADRATIC,
+            \Imagick::FILTER_CUBIC,
+            \Imagick::FILTER_CATROM,
+            \Imagick::FILTER_MITCHELL,
+            \Imagick::FILTER_LANCZOS,
+            \Imagick::FILTER_BESSEL,
+            \Imagick::FILTER_SINC,
+        );
+
+        // Parse parameters given to function
+        $columns = (float) ($columns);
+        $rows = (float) ($rows);
+        $bestfit = (bool) $bestfit;
+        $fill = (bool) $fill;
+
+        // We can’t resize to (0,0)
+        if ($rows < 1 && $columns < 1) {
+            return false;
+        }
+
+        // Set a default filter if an acceptable one wasn’t passed
+        if (!in_array($filter, $filters)) {
+            $filter = \Imagick::FILTER_TRIANGLE;
+        }
+
+        // figure out the output width and height
+        $width = (float) $this->imagick->getImageWidth();
+        $height = (float) $this->imagick->getImageHeight();
+        $new_width = $columns;
+        $new_height = $rows;
+
+        $x_factor = $columns / $width;
+        $y_factor = $rows / $height;
+
+        if ($rows < 1) {
+            $new_height = round($x_factor * $height);
+        } elseif ($columns < 1) {
+            $new_width = round($y_factor * $width);
+        }
+
+        // if bestfit is true, the new_width/new_height of the image will be different than
+        // the columns/rows parameters; those will define a bounding box in which the image will be fit
+        if ($bestfit && $x_factor > $y_factor) {
+            $x_factor = $y_factor;
+            $new_width = round($y_factor * $width);
+        } elseif ($bestfit && $y_factor > $x_factor) {
+            $y_factor = $x_factor;
+            $new_height = round($x_factor * $height);
+        }
+
+        if ($new_width < 1) {
+            $new_width = 1;
+        }
+
+        if ($new_height < 1) {
+            $new_height = 1;
+        }
+
+        // if we’re resizing the image to more than about 1/3 it’s original size
+        // then just use the resize function
+        if (($x_factor * $y_factor) > 0.1) {
+            $this->imagick->resizeImage($new_width, $new_height, $filter, 1);
+
+            // if we’d be using sample to scale to smaller than 128x128, just use resize
+        } elseif ((($SampleFactor * $new_width) < 128) || (($SampleFactor * $new_height) < 128)) {
+            $this->imagick->resizeImage($new_width, $new_height, $filter, 1);
+
+            // otherwise, use sample first, then resize
+        } else {
+            $this->imagick->sampleImage($SampleFactor * $new_width, $SampleFactor * $new_height);
+            $this->imagick->resizeImage($new_width, $new_height, $filter, 1);
+        }
+
+        // if the alpha channel is not defined, make it opaque
+        if ($this->imagick->getImageAlphaChannel() == \Imagick::ALPHACHANNEL_UNDEFINED) {
+            $this->imagick->setImageAlphaChannel(defined('Imagick::ALPHACHANNEL_OPAQUE') ? \Imagick::ALPHACHANNEL_OPAQUE : \Imagick::ALPHACHANNEL_OFF);
+        }
+
+        // set the image’s bit depth to 8 bits
+        $this->imagick->setImageDepth(8);
+
+        // turn off interlacing
+        $this->imagick->setInterlaceScheme(\Imagick::INTERLACE_NO);
+
+        // Strip all profiles except color profiles.
+        foreach ($this->imagick->getImageProfiles('*', true) as $key => $value) {
+            $remove = false;
+
+            if ($key == 'icc' || $key == 'icm') {
+                $remove = !$keepImageProfiles;
+            } elseif ($key == 'exif' || $key == 'iptc') {
+                $remove = !$keepExifData;
+            } else {
+                $remove = true;
+            }
+
+            if ($remove) {
+                try {
+                    $this->imagick->removeImageProfile($key);
+                } catch (\Exception $e) {
+                    // Some Imagick versions have trouble removing an image profile that they found.
+                }
+            }
+        }
+
+        $properties = array('commment', 'Thumb::URI', 'Thumb::MTime', 'Thumb::Size', 'Thumb::Mimetype', 'software', 'Thumb::Image::Width', 'Thumb::Image::Height', 'Thumb::Document::Pages');
+        $delete = method_exists($this, 'deleteImageProperty');
+
+        foreach ($properties as $property) {
+            try {
+                if ($delete) {
+                    $this->imagick->deleteImageProperty($property);
+                } else {
+                    $this->imagick->setImageProperty($property, '');
+                }
+            } catch (\Exception $e) {
+                // Mere exceptions cannot stop me!
+            }
+        }
+
+        // In case user wants to fill use extent for it rather than creating a new canvas
+        // …fill out the bounding box
+        if ($bestfit && $fill && ($new_width != $columns || $new_height != $rows)) {
+            $extent_x = 0;
+            $extent_y = 0;
+
+            if ($columns > $new_width) {
+                $extent_x = ($columns - $new_width) / 2;
+            }
+            if ($rows > $new_height) {
+                $extent_y = ($rows - $new_height) / 2;
+            }
+
+            $this->imagick->extentImage($columns, $rows, 0 - $extent_x, $extent_y);
+        }
+
+        return true;
     }
 
     /**
@@ -996,7 +1220,7 @@ final class Image extends AbstractImage implements InfoProvider
      */
     private function applyFastLinear(Linear $fill)
     {
-        $gradient = new Imagick();
+        $gradient = new \Imagick();
         $size = $this->getSize();
         $color = sprintf('gradient:%s-%s', (string) $fill->getStart(), (string) $fill->getEnd());
 

@@ -66,13 +66,13 @@ class Imagine extends AbstractImagine implements InfoProvider
             if ($loader->isLocalFile()) {
                 if (DIRECTORY_SEPARATOR === '\\' && PHP_INT_SIZE === 8 && defined('PHP_VERSION_ID') && PHP_VERSION_ID >= 70100 && PHP_VERSION_ID < 70200) {
                     // Passing the file name to the Imagick constructor may break PHP 7.1 64 bit on Windows - see https://github.com/mkoppanen/imagick/issues/252
-                    $imagick = new Imagick();
+                    $imagick = new \Imagick();
                     $imagick->readImageBlob($loader->getData(), $path);
                 } else {
-                    $imagick = new Imagick($path);
+                    $imagick = new \Imagick($path);
                 }
             } else {
-                $imagick = new Imagick();
+                $imagick = new \Imagick();
                 $imagick->readImageBlob($loader->getData());
             }
             $image = $this->getClassFactory()->createImage(ClassFactoryInterface::HANDLE_IMAGICK, $imagick, $this->createPalette($imagick), $this->getMetadataReader()->readFile($loader));
@@ -100,7 +100,7 @@ class Imagine extends AbstractImagine implements InfoProvider
             $pixel = new \ImagickPixel((string) $color);
             $pixel->setColorValue(\Imagick::COLOR_ALPHA, $color->getAlpha() / 100);
 
-            $imagick = new Imagick();
+            $imagick = new \Imagick();
             $imagick->newImage($width, $height, $pixel);
             $imagick->setImageMatte(true);
             $imagick->setImageBackgroundColor($pixel);
@@ -134,7 +134,7 @@ class Imagine extends AbstractImagine implements InfoProvider
     public function load($string)
     {
         try {
-            $imagick = new Imagick();
+            $imagick = new \Imagick();
 
             $imagick->readImageBlob($string);
             $imagick->setImageMatte(true);
@@ -159,7 +159,7 @@ class Imagine extends AbstractImagine implements InfoProvider
         $content = stream_get_contents($resource);
 
         try {
-            $imagick = new Imagick();
+            $imagick = new \Imagick();
             $imagick->readImageBlob($content);
         } catch (\ImagickException $e) {
             throw new RuntimeException('Could not read image from resource', $e->getCode(), $e);
